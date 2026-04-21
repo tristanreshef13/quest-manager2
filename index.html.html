@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>QUEST MANAGER 9000</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0d0b1a;--panel:#16132a;--panel2:#1e1a35;--panel3:#241f3e;
+  --border:#2e2850;--border2:#3d3666;
+  --text:#f0ecff;--muted:#7a7098;--muted2:#554e78;
+  --pink:#ff3fa4;--cyan:#00f5d4;--yellow:#ffe135;--orange:#ff7c2a;
+  --purple:#b44fff;--green:#3dff8f;--red:#ff4455;--blue:#3a9fff;
+  --r:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
+  background-image:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(180,79,255,.1),transparent);}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh}
+.sidebar{width:230px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:58px;flex-shrink:0;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;padding:0 18px}
+.content{flex:1;overflow-y:auto;padding:20px 22px}
+
+/* ── SIDEBAR ── */
+.logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.logo-title{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--yellow);line-height:2;letter-spacing:1px;
+  text-shadow:0 0 12px rgba(255,225,53,.4),2px 2px 0 rgba(0,0,0,.9)}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:4px}
+
+.xp-block{padding:12px 14px;border-bottom:1px solid var(--border)}
+.xp-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.xp-lv{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--cyan)}
+.xp-pts{font-size:11px;color:var(--muted)}
+.xp-bar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:4px;transition:width .6s ease}
+.streak-row{margin-top:7px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--orange)}
+
+.nav-sec{padding:12px 14px 4px;font-family:'Press Start 2P',monospace;font-size:6px;color:var(--muted2);letter-spacing:1.5px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:1px 6px;
+  border-radius:var(--r);cursor:pointer;color:var(--muted);transition:all .15s;font-size:12px;user-select:none}
+.nav-item:hover{background:var(--panel2);color:var(--text)}
+.nav-item.active{background:rgba(0,245,212,.08);color:var(--cyan);border:1px solid rgba(0,245,212,.18)}
+.nav-item svg{flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:10px;background:var(--panel2);padding:1px 6px;border-radius:10px;color:var(--muted)}
+.nav-item.active .nav-badge{background:rgba(0,245,212,.15);color:var(--cyan)}
+.nav-badge.red{color:var(--red)!important;background:rgba(255,68,85,.15)!important}
+
+.cat-area{padding:6px 10px 10px}
+.cat-hd{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 8px}
+.cat-hd span{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--muted2);letter-spacing:1px}
+.icon-btn{background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);
+  width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;transition:all .15s;flex-shrink:0}
+.icon-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.cat-item{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:var(--r);
+  cursor:pointer;transition:all .15s;font-size:12px;color:var(--muted);position:relative}
+.cat-item:hover{background:var(--panel2);color:var(--text)}
+.cat-item.active{background:var(--panel2);color:var(--text)}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-cnt{margin-left:auto;font-size:10px;color:var(--muted2)}
+.cat-del{position:absolute;right:7px;opacity:0;background:none;border:none;
+  color:var(--red);cursor:pointer;font-size:13px;transition:opacity .15s;padding:2px 4px}
+.cat-item:hover .cat-del{opacity:1}
+
+/* ── TOPBAR ── */
+.tb-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text);
+  flex:1;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-box{display:flex;align-items:center;gap:7px;background:var(--panel2);
+  border:1px solid var(--border);border-radius:var(--r);padding:6px 11px;width:200px;transition:border-color .15s}
+.search-box:focus-within{border-color:var(--cyan)}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:12px;
+  width:100%;font-family:'DM Sans',sans-serif}
+.search-box input::placeholder{color:var(--muted)}
+.flt-btn{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--muted);padding:6px 10px;cursor:pointer;font-size:12px;
+  display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'DM Sans',sans-serif}
+.flt-btn:hover,.flt-btn.on{border-color:var(--purple);color:var(--purple)}
+.new-btn{background:var(--pink);border:none;border-radius:var(--r);color:#fff;
+  padding:8px 14px;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:7px;
+  letter-spacing:.5px;white-space:nowrap;box-shadow:0 0 14px rgba(255,63,164,.3);transition:all .15s}
+.new-btn:hover{background:#ff1a90;box-shadow:0 0 22px rgba(255,63,164,.55);transform:translateY(-1px)}
+.drive-btn{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:var(--r);color:var(--text);padding:7px 12px;cursor:pointer;font-size:11px;font-weight:600;
+  font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.drive-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.drive-btn.syncing{opacity:.7;pointer-events:none;animation:pulse-sync 1s ease-in-out infinite}
+.drive-btn.success{border-color:var(--green);color:var(--green)}
+.drive-btn.error{border-color:var(--red);color:var(--red)}
+@keyframes pulse-sync{0%,100%{opacity:.7}50%{opacity:1}}
+/* Backup modal */
+.bk-modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  width:400px;max-width:95vw;box-shadow:0 24px 80px rgba(0,0,0,.9)}
+.bk-body{padding:20px 22px 22px;text-align:center}
+.bk-icon{font-size:36px;margin-bottom:12px;display:block}
+.bk-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--yellow);margin-bottom:10px}
+.bk-text{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:18px}
+.bk-btns{display:flex;gap:10px;justify-content:center}
+.bk-row{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:var(--r);padding:10px 14px;margin-bottom:8px;text-align:left}
+.bk-row-icon{font-size:18px;flex-shrink:0}
+.bk-row-text{flex:1}
+.bk-row-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.bk-row-sub{font-size:11px;color:var(--muted)}
+.bk-row-action{background:var(--panel);border:1px solid var(--border);border-radius:4px;
+  color:var(--cyan);padding:5px 12px;cursor:pointer;font-size:11px;font-weight:600;
+  transition:all .15s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.bk-row-action:hover{background:rgba(0,245,212,.1);border-color:var(--cyan)}
+
+/* ── FILTER BAR ── */
+.flt-bar{display:none;background:var(--panel2);border-bottom:1px solid var(--border);
+  padding:9px 18px;gap:8px;flex-wrap:wrap;align-items:center}
+.flt-bar.open{display:flex}
+.flt-lbl{font-size:10px;color:var(--muted);white-space:nowrap}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:var(--panel);
+  font-size:10px;cursor:pointer;color:var(--muted);transition:all .15s;user-select:none}
+.chip:hover{border-color:var(--text);color:var(--text)}
+.chip.on{border-color:transparent;color:#fff}
+.chip-high.on{background:var(--red)}
+.chip-med.on{background:var(--orange)}
+.chip-low.on{background:var(--green);color:#000}
+.chip-done.on{background:var(--cyan);color:#000}
+.chip-rec.on{background:var(--yellow);color:#000}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.sc{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 14px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sc.s1::before{background:linear-gradient(90deg,var(--pink),var(--purple))}
+.sc.s2::before{background:linear-gradient(90deg,var(--cyan),var(--blue))}
+.sc.s3::before{background:linear-gradient(90deg,var(--yellow),var(--orange))}
+.sc.s4::before{background:linear-gradient(90deg,var(--green),var(--cyan))}
+.sc-val{font-family:'Press Start 2P',monospace;font-size:16px;margin-bottom:5px;line-height:1}
+.sc.s1 .sc-val{color:var(--pink)}.sc.s2 .sc-val{color:var(--cyan)}
+.sc.s3 .sc-val{color:var(--yellow)}.sc.s4 .sc-val{color:var(--green)}
+.sc-lbl{font-size:10px;color:var(--muted)}
+
+/* ── SECTION HEADER ── */
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text);letter-spacing:.5px}
+.sec-cnt{font-size:11px;color:var(--muted)}
+
+/* ── TASK ITEMS ── */
+.task-list{display:flex;flex-direction:column;gap:5px}
+.ti{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:10px 12px;display:flex;align-items:flex-start;gap:10px;
+  cursor:default;transition:all .15s;position:relative;
+  animation:pop-in .18s ease both}
+.ti:hover{background:var(--panel2);border-color:var(--border2);transform:translateX(2px)}
+.ti.done{opacity:.45}
+.ti.done .ti-name{text-decoration:line-through;color:var(--muted)}
+.ti.drag-over{border-color:var(--cyan)!important;background:rgba(0,245,212,.04)!important}
+.ti[draggable]{cursor:grab}.ti[draggable]:active{cursor:grabbing}
+.ti-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r) 0 0 var(--r)}
+.ti-chk{width:19px;height:19px;border-radius:4px;border:2px solid var(--border2);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;margin-top:1px;cursor:pointer}
+.ti-chk:hover{border-color:var(--cyan)}
+.ti-chk.on{background:var(--cyan);border-color:var(--cyan)}
+.ti-chk.on svg{display:block}.ti-chk svg{display:none}
+.ti-body{flex:1;min-width:0}
+.ti-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px}
+.ti-name{font-size:13px;font-weight:500}
+.ti-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
+.tag{padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.p-high{background:rgba(255,68,85,.15);color:var(--red);border:1px solid rgba(255,68,85,.28)}
+.p-med{background:rgba(255,124,42,.15);color:var(--orange);border:1px solid rgba(255,124,42,.28)}
+.p-low{background:rgba(61,255,143,.15);color:var(--green);border:1px solid rgba(61,255,143,.28)}
+.t-date{background:rgba(58,159,255,.12);color:var(--blue);border:1px solid rgba(58,159,255,.25)}
+.t-date.od{background:rgba(255,68,85,.15);color:var(--red);border-color:rgba(255,68,85,.28)}
+.t-rec{background:rgba(255,225,53,.12);color:var(--yellow);border:1px solid rgba(255,225,53,.25)}
+.t-xp{background:rgba(255,225,53,.1);color:var(--yellow);border:1px solid rgba(255,225,53,.22)}
+.t-cat{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px}
+.t-note{font-size:11px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px}
+.sub-cnt{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px}
+.subs-inline{margin-top:7px;border-top:1px solid var(--border);padding-top:7px;display:flex;flex-direction:column;gap:4px}
+.sub-row{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);cursor:pointer}
+.sub-row.s-done{text-decoration:line-through;opacity:.45}
+.sub-row input[type=checkbox]{accent-color:var(--cyan);width:13px;height:13px;cursor:pointer;flex-shrink:0}
+.ti-acts{display:flex;gap:3px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.ti:hover .ti-acts{opacity:1}
+.act-btn{width:26px;height:26px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:all .15s}
+.act-btn:hover{border-color:var(--text);color:var(--text)}
+.act-btn.del:hover{border-color:var(--red);color:var(--red)}
+
+@keyframes pop-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty-ico{font-family:'Press Start 2P',monospace;font-size:24px;margin-bottom:14px;display:block;opacity:.35}
+.empty-txt{font-size:13px;line-height:2}
+
+/* ── SKILLS PAGE ── */
+.skills-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.skill-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:16px 18px;position:relative;overflow:hidden;transition:border-color .15s}
+.skill-card:hover{border-color:var(--border2)}
+.skill-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.skill-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.skill-left{display:flex;align-items:center;gap:10px}
+.skill-ico{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0}
+.skill-name{font-size:14px;font-weight:600;color:var(--text)}
+.skill-rank{font-family:'Press Start 2P',monospace;font-size:7px;margin-top:3px}
+.skill-acts{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.skill-card:hover .skill-acts{opacity:1}
+.skill-hrs-row{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+.skill-hrs-big{font-family:'Press Start 2P',monospace;font-size:16px}
+.skill-hrs-lbl{font-size:11px;color:var(--muted)}
+.skill-bar-wrap{margin-bottom:8px}
+.skill-bar-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px}
+.skill-bar{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.skill-fill{height:100%;border-radius:4px;transition:width .6s ease;position:relative}
+.skill-fill::after{content:'';position:absolute;top:1px;left:0;right:0;height:2px;
+  background:rgba(255,255,255,.2);border-radius:2px}
+.skill-bottom{display:flex;align-items:center;justify-content:space-between}
+.skill-sessions{font-size:11px;color:var(--muted)}
+.log-btn{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--cyan);padding:5px 12px;cursor:pointer;font-size:11px;font-weight:600;
+  transition:all .15s;font-family:'DM Sans',sans-serif}
+.log-btn:hover{background:rgba(0,245,212,.1);border-color:var(--cyan)}
+
+/* Skill rank badge */
+.rank-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;
+  border-radius:10px;font-size:10px;font-weight:600}
+
+/* Log session inline */
+.log-panel{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.log-panel.open{display:block}
+.log-row{display:flex;gap:8px;align-items:center}
+.log-input{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);
+  padding:6px 10px;color:var(--text);font-size:13px;width:90px;outline:none;
+  font-family:'DM Sans',sans-serif;transition:border-color .15s}
+.log-input:focus{border-color:var(--cyan)}
+.log-note{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);
+  padding:6px 10px;color:var(--text);font-size:12px;outline:none;font-family:'DM Sans',sans-serif;transition:border-color .15s}
+.log-note:focus{border-color:var(--cyan)}
+.log-submit{background:var(--cyan);border:none;border-radius:var(--r);color:#000;
+  padding:6px 14px;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:7px;transition:all .15s}
+.log-submit:hover{background:#00ddc0}
+.sessions-list{margin-top:10px;display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto}
+.sess-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);
+  padding:4px 0;border-bottom:1px solid var(--border)}
+.sess-row:last-child{border-bottom:none}
+.sess-hrs{font-weight:600;color:var(--text);min-width:40px}
+.sess-note{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sess-date{color:var(--muted2);white-space:nowrap}
+.sess-del{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:12px;
+  padding:1px 4px;transition:color .15s}
+.sess-del:hover{color:var(--red)}
+
+/* ── MODALS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(3px)}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 80px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.04);
+  transform:scale(.96) translateY(8px);transition:transform .2s}
+.overlay.open .modal{transform:scale(1) translateY(0)}
+.modal.sm{width:380px}
+.mhd{padding:18px 20px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.mhd-title{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--yellow)}
+.m-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;
+  padding:2px 6px;border-radius:4px;transition:all .15s;line-height:1}
+.m-close:hover{background:var(--panel2);color:var(--text)}
+.mbody{padding:18px 20px}
+.fg{margin-bottom:14px}
+.flbl{display:block;font-size:10px;color:var(--muted);margin-bottom:5px;
+  letter-spacing:.5px;text-transform:uppercase;font-weight:600}
+.finput,.fsel,.ftxt{width:100%;background:var(--panel2);border:1px solid var(--border);
+  border-radius:var(--r);padding:8px 11px;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
+.finput:focus,.fsel:focus,.ftxt:focus{border-color:var(--cyan)}
+.ftxt{resize:vertical;min-height:68px;line-height:1.6}
+.fsel option{background:var(--panel2)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.prio-grp{display:flex;gap:7px}
+.pr{flex:1;text-align:center;padding:7px;border-radius:var(--r);border:1px solid var(--border);
+  cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;user-select:none}
+.pr:hover{border-color:currentColor}
+.pr.high{color:var(--red)}.pr.high.sel{background:rgba(255,68,85,.15);border-color:var(--red)}
+.pr.med{color:var(--orange)}.pr.med.sel{background:rgba(255,124,42,.15);border-color:var(--orange)}
+.pr.low{color:var(--green)}.pr.low.sel{background:rgba(61,255,143,.15);border-color:var(--green)}
+
+/* Color picker */
+.cpicker{display:flex;gap:7px;flex-wrap:wrap}
+.csw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+  transition:all .15s;position:relative;flex-shrink:0}
+.csw:hover,.csw.sel{border-color:#fff;transform:scale(1.15)}
+.csw.sel::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:11px;color:#fff;font-weight:700}
+
+/* Subtasks */
+.stask-list{display:flex;flex-direction:column;gap:5px;margin-bottom:7px}
+.stask-row{display:flex;align-items:center;gap:7px}
+.stask-row input[type=text]{flex:1;background:var(--panel2);border:1px solid var(--border);
+  border-radius:4px;padding:5px 9px;color:var(--text);font-size:12px;
+  font-family:'DM Sans',sans-serif;outline:none}
+.stask-row input[type=text]:focus{border-color:var(--purple)}
+.stask-row input[type=checkbox]{accent-color:var(--cyan);width:15px;height:15px;cursor:pointer}
+.stask-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;
+  padding:2px 4px;transition:color .15s}
+.stask-del:hover{color:var(--red)}
+.add-sub-btn{background:none;border:1px dashed var(--border);border-radius:4px;
+  color:var(--muted);padding:5px 11px;width:100%;cursor:pointer;font-size:11px;
+  font-family:'DM Sans',sans-serif;transition:all .15s}
+.add-sub-btn:hover{border-color:var(--purple);color:var(--purple)}
+
+/* Modal footer */
+.mft{padding:12px 20px 18px;display:flex;justify-content:flex-end;gap:9px;border-top:1px solid var(--border)}
+.btn-c{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--muted);padding:8px 16px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-c:hover{border-color:var(--text);color:var(--text)}
+.btn-s{background:var(--cyan);border:none;border-radius:var(--r);color:#000;
+  padding:8px 20px;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:7px;
+  box-shadow:0 0 12px rgba(0,245,212,.25);transition:all .15s}
+.btn-s:hover{background:#00ddc0;box-shadow:0 0 20px rgba(0,245,212,.45)}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:300;
+  display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 24px rgba(0,0,0,.6);transform:translateX(120%);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.toast.show{transform:translateX(0)}
+.t-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── SHAKE ── */
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes lvl-up{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+@media(max-width:640px){
+  .sidebar{display:none}.stats-row{grid-template-columns:repeat(2,1fr)}
+  .skills-grid{grid-template-columns:1fr}.f2,.f3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title">QUEST<br>MGR<br>9000</div>
+    <div class="logo-sub">Your mission board ⚡</div>
+  </div>
+  <div class="xp-block">
+    <div class="xp-top">
+      <span class="xp-lv" id="xp-lv">LV.1</span>
+      <span class="xp-pts" id="xp-pts">0 XP</span>
+    </div>
+    <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    <div class="streak-row">🔥 <span id="streak-n">0</span>&nbsp;day streak</div>
+  </div>
+  <div class="nav-sec">Views</div>
+  <div class="nav-item active" onclick="setView('all',this)" id="nav-all">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor" opacity=".7"><rect x="1" y="1" width="4" height="4" rx="1"/><rect x="8" y="1" width="4" height="4" rx="1"/><rect x="1" y="8" width="4" height="4" rx="1"/><rect x="8" y="8" width="4" height="4" rx="1"/></svg>
+    All Tasks <span class="nav-badge" id="nb-all">0</span>
+  </div>
+  <div class="nav-item" onclick="setView('today',this)">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="2" width="11" height="10" rx="1.5"/><path d="M1 5.5h11M4.5 1v2M8.5 1v2"/></svg>
+    Today <span class="nav-badge" id="nb-today">0</span>
+  </div>
+  <div class="nav-item" onclick="setView('overdue',this)">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="6.5" cy="6.5" r="5.5"/><path d="M6.5 3.5V7l2 2"/></svg>
+    Overdue <span class="nav-badge red" id="nb-od">0</span>
+  </div>
+  <div class="nav-item" onclick="setView('done',this)">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="6.5" cy="6.5" r="5.5"/><path d="M4 6.5l2 2 3.5-3.5"/></svg>
+    Completed <span class="nav-badge" id="nb-done">0</span>
+  </div>
+  <div class="nav-item" onclick="setView('recurring',this)">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 6.5c0-2.5 2-4.5 4.5-4.5 1.3 0 2.5.55 3.3 1.43L12 1.5"/><path d="M11 6.5c0 2.5-2 4.5-4.5 4.5-1.3 0-2.5-.55-3.3-1.43L1 11.5"/></svg>
+    Recurring <span class="nav-badge" id="nb-rec">0</span>
+  </div>
+  <div class="nav-item" onclick="setView('skills',this)" style="color:var(--purple)">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M6.5 1l1.3 3 3.2.5-2.3 2.3.55 3.2L6.5 8.5l-2.75 1.5.55-3.2L2 4.5l3.2-.5z"/></svg>
+    Skills <span class="nav-badge" id="nb-skills" style="color:var(--purple)">0</span>
+  </div>
+
+  <div class="nav-sec" style="margin-top:6px">Categories</div>
+  <div class="cat-area">
+    <div class="cat-hd">
+      <span>Projects</span>
+      <button class="icon-btn" onclick="openCatModal()" title="Add category">+</button>
+    </div>
+    <div id="cat-list"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tb-title">ALL TASKS</div>
+    <div class="search-box">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#7a7098" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="#7a7098" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <input type="text" placeholder="Search… (⌘K)" id="search-inp" oninput="renderMain()"/>
+    </div>
+    <button class="flt-btn" id="flt-btn" onclick="toggleFlt()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 2h10M3 6h6M5 10h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Filter
+    </button>
+    <button class="new-btn" id="new-btn" onclick="onNewBtn()">+ NEW</button>
+    <button class="drive-btn" id="drive-btn" onclick="driveBackup()" title="Backup to Google Drive">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 19h20L12 2z" fill="#4285F4" opacity=".0"/><path d="M1.5 19.5l4-7 4 7H1.5z" fill="#0F9D58"/><path d="M8.5 19.5l4-7 4 7H8.5z" fill="#4285F4" opacity="0"/><path d="M6 12.5L10 5l4 7.5H6z" fill="#4285F4"/><path d="M14 12.5L18 5l4 7.5H14z" fill="#FBBC04" opacity="0"/><path d="M2 19.5h20" stroke="#EA4335" opacity="0"/><path d="M8.5 4.5l3.5 6 3.5-6" stroke="#4285F4" opacity="0"/><polygon points="12,2 2,19 22,19" fill="none" stroke="#4285F4" opacity="0"/><path d="M3 17.5l4.5-8L12 17.5H3z" fill="#0F9D58"/><path d="M12 17.5l4.5-8L21 17.5H12z" fill="#FBBC04"/><path d="M7.5 9.5l4.5-7.5 4.5 7.5H7.5z" fill="#4285F4"/></svg>
+      <span id="drive-btn-txt">Backup</span>
+    </button>
+  </div>
+  <div class="flt-bar" id="flt-bar">
+    <span class="flt-lbl">Priority:</span>
+    <div class="chips">
+      <div class="chip chip-high" data-f="p-high" onclick="toggleChip(this)">🔴 High</div>
+      <div class="chip chip-med"  data-f="p-med"  onclick="toggleChip(this)">🟠 Med</div>
+      <div class="chip chip-low"  data-f="p-low"  onclick="toggleChip(this)">🟢 Low</div>
+    </div>
+    <span class="flt-lbl" style="margin-left:6px">Status:</span>
+    <div class="chips">
+      <div class="chip chip-done" data-f="s-done" onclick="toggleChip(this)">Done</div>
+      <div class="chip chip-rec"  data-f="s-rec"  onclick="toggleChip(this)">🔁 Recurring</div>
+    </div>
+    <button class="chip" onclick="clearChips()" style="margin-left:auto">Clear</button>
+  </div>
+  <div class="content" id="main-content"></div>
+</div>
+</div>
+
+<!-- ══ TASK MODAL ══ -->
+<div class="overlay" id="task-ov">
+<div class="modal">
+  <div class="mhd">
+    <div class="mhd-title" id="task-mtitle">NEW QUEST</div>
+    <button class="m-close" onclick="closeTaskModal()">×</button>
+  </div>
+  <div class="mbody">
+    <div class="fg"><label class="flbl">Quest Name *</label>
+      <input class="finput" id="f-name" placeholder="What needs to be done?" maxlength="120"/></div>
+    <div class="f2">
+      <div class="fg"><label class="flbl">Category</label>
+        <select class="fsel" id="f-cat"></select></div>
+      <div class="fg"><label class="flbl">Due Date</label>
+        <input class="finput" id="f-date" type="date"/></div>
+    </div>
+    <div class="fg"><label class="flbl">Priority</label>
+      <div class="prio-grp">
+        <div class="pr high sel" data-p="high" onclick="selPrio(this)">🔴 HIGH</div>
+        <div class="pr med"      data-p="med"  onclick="selPrio(this)">🟠 MED</div>
+        <div class="pr low"      data-p="low"  onclick="selPrio(this)">🟢 LOW</div>
+      </div></div>
+    <div class="f2">
+      <div class="fg"><label class="flbl">Recurring</label>
+        <select class="fsel" id="f-rec">
+          <option value="">None</option><option value="daily">Daily</option>
+          <option value="weekly">Weekly</option><option value="monthly">Monthly</option>
+        </select></div>
+      <div class="fg"><label class="flbl">XP Reward</label>
+        <input class="finput" id="f-xp" type="number" placeholder="50" min="1" max="9999"/></div>
+    </div>
+    <div class="fg"><label class="flbl">Notes</label>
+      <textarea class="ftxt" id="f-notes" placeholder="Details, links, context…"></textarea></div>
+    <div class="fg"><label class="flbl">Sub-Quests</label>
+      <div class="stask-list" id="modal-subs"></div>
+      <button class="add-sub-btn" onclick="addSubField()">+ Add sub-quest</button></div>
+  </div>
+  <div class="mft">
+    <button class="btn-c" onclick="closeTaskModal()">Cancel</button>
+    <button class="btn-s" onclick="saveTask()">SAVE QUEST</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ CATEGORY MODAL ══ -->
+<div class="overlay" id="cat-ov">
+<div class="modal sm">
+  <div class="mhd">
+    <div class="mhd-title" id="cat-mtitle">NEW CATEGORY</div>
+    <button class="m-close" onclick="closeCatModal()">×</button>
+  </div>
+  <div class="mbody">
+    <div class="fg"><label class="flbl">Name *</label>
+      <input class="finput" id="cat-name" placeholder="Work, Health, Side Project…"/></div>
+    <div class="fg"><label class="flbl">Color</label>
+      <div class="cpicker" id="cat-cpicker"></div></div>
+    <div class="fg"><label class="flbl">Emoji (optional)</label>
+      <input class="finput" id="cat-emoji" placeholder="🚀" maxlength="4" style="width:70px"/></div>
+  </div>
+  <div class="mft">
+    <button class="btn-c" onclick="closeCatModal()">Cancel</button>
+    <button class="btn-s" onclick="saveCat()">CREATE</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ SKILL MODAL ══ -->
+<div class="overlay" id="skill-ov">
+<div class="modal sm">
+  <div class="mhd">
+    <div class="mhd-title" id="skill-mtitle">NEW SKILL</div>
+    <button class="m-close" onclick="closeSkillModal()">×</button>
+  </div>
+  <div class="mbody">
+    <div class="fg"><label class="flbl">Skill Name *</label>
+      <input class="finput" id="sk-name" placeholder="Guitar, Python, Running…"/></div>
+    <div class="f2">
+      <div class="fg"><label class="flbl">Emoji</label>
+        <input class="finput" id="sk-emoji" placeholder="🎸" maxlength="4" style="width:70px"/></div>
+      <div class="fg"><label class="flbl">Color</label>
+        <div class="cpicker" id="sk-cpicker"></div></div>
+    </div>
+    <div class="fg"><label class="flbl">Goal (hours to Master)</label>
+      <input class="finput" id="sk-goal" type="number" placeholder="1000" min="1"/></div>
+    <div class="fg"><label class="flbl">Notes / Description</label>
+      <textarea class="ftxt" id="sk-notes" placeholder="What is this skill? Why are you learning it?" style="min-height:56px"></textarea></div>
+  </div>
+  <div class="mft">
+    <button class="btn-c" onclick="closeSkillModal()">Cancel</button>
+    <button class="btn-s" onclick="saveSkill()">CREATE SKILL</button>
+  </div>
+</div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- ══ BACKUP MODAL ══ -->
+<div class="overlay" id="bk-ov">
+<div class="modal bk-modal">
+  <div class="mhd">
+    <div class="mhd-title">☁️ DRIVE BACKUP</div>
+    <button class="m-close" onclick="document.getElementById('bk-ov').classList.remove('open')">×</button>
+  </div>
+  <div class="bk-body" id="bk-body">
+    <span class="bk-icon">☁️</span>
+    <div class="bk-title">Backup to Google Drive</div>
+    <div class="bk-text">שמור את כל המשימות, הסקילס והנתונים שלך<br/>ישירות ל-Google Drive שלך.</div>
+    <div class="bk-row">
+      <span class="bk-row-icon">📤</span>
+      <div class="bk-row-text">
+        <div class="bk-row-title">Backup עכשיו</div>
+        <div class="bk-row-sub">שומר קובץ JSON ב-Drive שלך</div>
+      </div>
+      <button class="bk-row-action" onclick="doBackup()">Backup</button>
+    </div>
+    <div class="bk-row">
+      <span class="bk-row-icon">📥</span>
+      <div class="bk-row-text">
+        <div class="bk-row-title">Restore מ-Drive</div>
+        <div class="bk-row-sub">טען גיבוי קיים (מחליף נתונים נוכחיים)</div>
+      </div>
+      <button class="bk-row-action" onclick="doRestore()">Restore</button>
+    </div>
+    <div id="bk-last" style="font-size:11px;color:var(--muted);margin-top:12px;text-align:center"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════
+const COLORS=['#ff3fa4','#00f5d4','#ffe135','#ff7c2a','#b44fff','#3dff8f','#ff4455','#3a9fff','#ff9de2','#a8e063'];
+const SKILL_RANKS=[
+  {name:'Novice',    minHrs:0,    color:'#7a7098'},
+  {name:'Apprentice',minHrs:10,   color:'#3a9fff'},
+  {name:'Adept',     minHrs:50,   color:'#3dff8f'},
+  {name:'Skilled',   minHrs:100,  color:'#ffe135'},
+  {name:'Expert',    minHrs:250,  color:'#ff7c2a'},
+  {name:'Master',    minHrs:500,  color:'#b44fff'},
+  {name:'Grandmaster',minHrs:1000,color:'#ff3fa4'},
+];
+const LV_NAMES=['Rookie','Cadet','Warrior','Veteran','Elite','Champion','Legend','Mythic'];
+const DEFAULT_CATS=[
+  {id:'work',    name:'Work',    color:'#3a9fff',emoji:'💼'},
+  {id:'personal',name:'Personal',color:'#b44fff',emoji:'⚡'},
+  {id:'health',  name:'Health',  color:'#3dff8f',emoji:'💪'},
+];
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+function loadST(){
+  try{const s=localStorage.getItem('qm9k_v2');if(s)return JSON.parse(s);}catch(e){}
+  return{tasks:[],categories:[...DEFAULT_CATS],skills:[],xp:0,streak:0,lastDone:null,_id:1};
+}
+function saveST(){localStorage.setItem('qm9k_v2',JSON.stringify(ST));}
+let ST=loadST();
+let curView='all', curCat=null;
+let activeF=new Set();
+let editTaskId=null, editSkillId=null;
+let dragSrc=null;
+
+// ══════════════════════════════════════════════════════
+//  XP / LEVEL
+// ══════════════════════════════════════════════════════
+function xpForLv(l){return l*l*100;}
+function getLvInfo(xp){
+  let l=0;
+  while(l<LV_NAMES.length-1 && xp>=xpForLv(l+1)) l++;
+  const cur=xpForLv(l), next=xpForLv(l+1)||xpForLv(l)+999;
+  return{l,name:LV_NAMES[l],pct:Math.min(100,Math.round((xp-cur)/(next-cur)*100)),next};
+}
+function addXP(n){
+  const before=getLvInfo(ST.xp).l;
+  ST.xp+=n;
+  const after=getLvInfo(ST.xp).l;
+  if(after>before) toast('🎉 LEVEL UP! Now '+LV_NAMES[after],'var(--yellow)');
+  renderXPBar();
+}
+function renderXPBar(){
+  const info=getLvInfo(ST.xp);
+  document.getElementById('xp-lv').textContent='LV.'+info.l;
+  document.getElementById('xp-pts').textContent=ST.xp+' XP';
+  document.getElementById('xp-fill').style.width=info.pct+'%';
+  document.getElementById('streak-n').textContent=ST.streak;
+  document.getElementById('st-xp').textContent=ST.xp;
+  document.getElementById('st-streak').textContent=ST.streak;
+}
+
+// ══════════════════════════════════════════════════════
+//  STREAK
+// ══════════════════════════════════════════════════════
+function bumpStreak(){
+  const today=new Date().toDateString();
+  if(ST.lastDone===today) return;
+  const yest=new Date(Date.now()-86400000).toDateString();
+  ST.streak=(ST.lastDone===yest)?ST.streak+1:1;
+  ST.lastDone=today;
+}
+
+// ══════════════════════════════════════════════════════
+//  SKILL RANK HELPER
+// ══════════════════════════════════════════════════════
+function getSkillRank(hrs){
+  let r=SKILL_RANKS[0];
+  for(const sr of SKILL_RANKS) if(hrs>=sr.minHrs) r=sr;
+  return r;
+}
+function nextSkillRank(hrs){
+  for(let i=SKILL_RANKS.length-1;i>=0;i--){
+    if(hrs<SKILL_RANKS[i].minHrs) return SKILL_RANKS[i];
+  }
+  return null;
+}
+function totalSkillHrs(skill){
+  return (skill.sessions||[]).reduce((a,s)=>a+s.hrs,0);
+}
+
+// ══════════════════════════════════════════════════════
+//  DATE HELPERS
+// ══════════════════════════════════════════════════════
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function isOverdue(t){return t.dueDate&&!t.done&&t.dueDate<todayStr();}
+function isToday(t){return t.dueDate===todayStr();}
+function fmtD(d){
+  if(!d) return '';
+  return new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+function fmtDT(ts){
+  return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
+}
+
+// ══════════════════════════════════════════════════════
+//  COUNTS / BADGES
+// ══════════════════════════════════════════════════════
+function updateCounts(){
+  const T=ST.tasks;
+  document.getElementById('nb-all').textContent=T.filter(t=>!t.done).length;
+  document.getElementById('nb-today').textContent=T.filter(t=>isToday(t)&&!t.done).length;
+  document.getElementById('nb-od').textContent=T.filter(t=>isOverdue(t)).length;
+  document.getElementById('nb-done').textContent=T.filter(t=>t.done).length;
+  document.getElementById('nb-rec').textContent=T.filter(t=>t.recurring&&!t.done).length;
+  document.getElementById('nb-skills').textContent=ST.skills.length;
+  document.getElementById('st-total').textContent=T.length;
+  document.getElementById('st-done').textContent=T.filter(t=>t.done).length;
+  ST.categories.forEach(c=>{
+    const el=document.querySelector(`.cat-item[data-id="${c.id}"] .cat-cnt`);
+    if(el) el.textContent=T.filter(t=>t.catId===c.id&&!t.done).length;
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  VIEW ROUTING
+// ══════════════════════════════════════════════════════
+const VIEW_TITLES={all:'ALL TASKS',today:"TODAY'S QUESTS",overdue:'OVERDUE',done:'COMPLETED',recurring:'RECURRING',skills:'SKILLS & MASTERY'};
+function setView(v,el){
+  curView=v; curCat=null;
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.cat-item').forEach(x=>x.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('tb-title').textContent=VIEW_TITLES[v]||v.toUpperCase();
+  // toggle new btn label
+  document.getElementById('new-btn').textContent=v==='skills'?'+ NEW SKILL':'+ NEW';
+  document.getElementById('flt-btn').style.display=v==='skills'?'none':'flex';
+  renderMain();
+}
+function setCatView(id){
+  curView='cat'; curCat=id;
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.cat-item').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`.cat-item[data-id="${id}"]`)?.classList.add('active');
+  const cat=ST.categories.find(c=>c.id===id);
+  document.getElementById('tb-title').textContent=(cat?(cat.emoji||'')+'  '+cat.name:'').toUpperCase();
+  document.getElementById('new-btn').textContent='+ NEW';
+  document.getElementById('flt-btn').style.display='flex';
+  renderMain();
+}
+function onNewBtn(){
+  if(curView==='skills') openSkillModal();
+  else openTaskModal();
+}
+
+// ══════════════════════════════════════════════════════
+//  FILTER
+// ══════════════════════════════════════════════════════
+function toggleFlt(){
+  document.getElementById('flt-bar').classList.toggle('open');
+  document.getElementById('flt-btn').classList.toggle('on');
+}
+function toggleChip(el){
+  const f=el.dataset.f;
+  activeF.has(f)?(activeF.delete(f),el.classList.remove('on')):(activeF.add(f),el.classList.add('on'));
+  renderMain();
+}
+function clearChips(){activeF.clear();document.querySelectorAll('.chip[data-f]').forEach(c=>c.classList.remove('on'));renderMain();}
+function passesF(t){
+  for(const f of activeF){
+    if(f==='p-high'&&t.priority!=='high') return false;
+    if(f==='p-med'&&t.priority!=='med') return false;
+    if(f==='p-low'&&t.priority!=='low') return false;
+    if(f==='s-done'&&!t.done) return false;
+    if(f==='s-rec'&&!t.recurring) return false;
+  }
+  return true;
+}
+
+// ══════════════════════════════════════════════════════
+//  MAIN CONTENT RENDER
+// ══════════════════════════════════════════════════════
+function renderMain(){
+  if(curView==='skills'){renderSkillsPage();return;}
+  renderTasksPage();
+}
+
+// ── STATS ROW HTML (shared) ──
+function statsRowHTML(){
+  return`<div class="stats-row">
+    <div class="sc s1"><div class="sc-val" id="st-total">0</div><div class="sc-lbl">Total Quests</div></div>
+    <div class="sc s2"><div class="sc-val" id="st-done">0</div><div class="sc-lbl">Completed</div></div>
+    <div class="sc s3"><div class="sc-val" id="st-streak">0</div><div class="sc-lbl">Day Streak 🔥</div></div>
+    <div class="sc s4"><div class="sc-val" id="st-xp">0</div><div class="sc-lbl">Total XP</div></div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  TASKS PAGE
+// ══════════════════════════════════════════════════════
+function getVisibleTasks(){
+  const q=(document.getElementById('search-inp').value||'').toLowerCase().trim();
+  let tasks=[...ST.tasks];
+  if(curView==='all')       tasks=tasks.filter(t=>!t.done);
+  else if(curView==='today')tasks=tasks.filter(t=>isToday(t)&&!t.done);
+  else if(curView==='overdue')tasks=tasks.filter(t=>isOverdue(t));
+  else if(curView==='done') tasks=tasks.filter(t=>t.done);
+  else if(curView==='recurring')tasks=tasks.filter(t=>t.recurring&&!t.done);
+  else if(curView==='cat')  tasks=tasks.filter(t=>t.catId===curCat&&!t.done);
+  if(q) tasks=tasks.filter(t=>t.name.toLowerCase().includes(q)||(t.notes||'').toLowerCase().includes(q));
+  if(activeF.size) tasks=tasks.filter(passesF);
+  return tasks;
+}
+
+function renderTasksPage(){
+  const mc=document.getElementById('main-content');
+  mc.innerHTML=statsRowHTML();
+  updateCounts();renderXPBar();
+  const tasks=getVisibleTasks();
+  const hd=document.createElement('div');hd.className='sec-hd';
+  hd.innerHTML=`<div class="sec-title">QUESTS</div><div class="sec-cnt">${tasks.length} quest${tasks.length!==1?'s':''}</div>`;
+  mc.appendChild(hd);
+  if(!tasks.length){
+    mc.innerHTML+=`<div class="empty"><span class="empty-ico">👾</span><div class="empty-txt">No quests here.<br>Hit <b>+ NEW</b> to start.</div></div>`;
+    return;
+  }
+  const list=document.createElement('div');list.className='task-list';
+  tasks.forEach((t,i)=>list.appendChild(makeTaskEl(t,i)));
+  mc.appendChild(list);
+}
+
+function makeTaskEl(t,idx){
+  const cat=ST.categories.find(c=>c.id===t.catId);
+  const od=isOverdue(t);
+  const el=document.createElement('div');
+  el.className='ti'+(t.done?' done':'');
+  el.dataset.id=t.id;
+  el.setAttribute('draggable','true');
+  el.style.animationDelay=(idx*25)+'ms';
+  const doneSubs=(t.subtasks||[]).filter(s=>s.done).length;
+  const totSubs=(t.subtasks||[]).length;
+  el.innerHTML=`
+    <div class="ti-bar" style="background:${cat?cat.color:'#554e78'}"></div>
+    <div class="ti-chk${t.done?' on':''}" onclick="toggleDone('${t.id}',event)">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="ti-body">
+      <div class="ti-top">
+        <span class="ti-name">${esc(t.name)}</span>
+        ${t.recurring?`<span class="tag t-rec">🔁 ${t.recurring}</span>`:''}
+      </div>
+      <div class="ti-meta">
+        <span class="tag p-${t.priority||'med'}">${t.priority==='high'?'🔴 High':t.priority==='low'?'🟢 Low':'🟠 Med'}</span>
+        ${cat?`<span class="tag t-cat" style="background:${cat.color}20;color:${cat.color};border:1px solid ${cat.color}40">${cat.emoji||''} ${cat.name}</span>`:''}
+        ${t.dueDate?`<span class="tag t-date${od?' od':''}">${od?'⚠️ ':'📅 '}${fmtD(t.dueDate)}</span>`:''}
+        ${t.xp?`<span class="tag t-xp">+${t.xp} XP</span>`:''}
+        ${totSubs?`<span class="sub-cnt"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="8" height="8" rx="1"/><path d="M3 5l1.5 1.5 2.5-2.5"/></svg>${doneSubs}/${totSubs}</span>`:''}
+      </div>
+      ${t.notes?`<div class="t-note">${esc(t.notes)}</div>`:''}
+      ${totSubs?renderSubsInline(t):''}
+    </div>
+    <div class="ti-acts">
+      <button class="act-btn" onclick="openTaskModal('${t.id}')" title="Edit">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5V9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="act-btn del" onclick="deleteTask('${t.id}',event)" title="Delete">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 3h8M5 3V2h2v1M9 3l-.6 7.5H3.6L3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>
+    </div>`;
+  // drag
+  el.addEventListener('dragstart',e=>{dragSrc=t.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));});
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag-over');});
+  el.addEventListener('dragleave',()=>el.classList.remove('drag-over'));
+  el.addEventListener('drop',e=>{
+    e.preventDefault();el.classList.remove('drag-over');
+    if(dragSrc===t.id) return;
+    const si=ST.tasks.findIndex(x=>x.id===dragSrc);
+    const di=ST.tasks.findIndex(x=>x.id===t.id);
+    if(si<0||di<0) return;
+    const [m]=ST.tasks.splice(si,1);ST.tasks.splice(di,0,m);
+    saveST();renderMain();
+  });
+  return el;
+}
+
+function renderSubsInline(t){
+  const rows=(t.subtasks||[]).map((s,i)=>
+    `<div class="sub-row${s.done?' s-done':''}">
+      <input type="checkbox" ${s.done?'checked':''} onclick="toggleSub('${t.id}',${i},event)"/>
+      ${esc(s.text)}
+    </div>`).join('');
+  return `<div class="subs-inline">${rows}</div>`;
+}
+
+function toggleSub(tid,idx,e){
+  e.stopPropagation();
+  const t=ST.tasks.find(x=>x.id===tid);if(!t||!t.subtasks) return;
+  t.subtasks[idx].done=!t.subtasks[idx].done;
+  saveST();renderMain();
+}
+
+function toggleDone(id,e){
+  e.stopPropagation();
+  const t=ST.tasks.find(x=>x.id===id);if(!t) return;
+  t.done=!t.done;
+  if(t.done){
+    addXP(t.xp||10);bumpStreak();
+    toast(`⚡ +${t.xp||10} XP — Quest complete!`,'var(--cyan)');
+    if(t.recurring){
+      setTimeout(()=>{
+        t.done=false;
+        if(t.dueDate){
+          const d=new Date(t.dueDate+'T12:00:00');
+          if(t.recurring==='daily') d.setDate(d.getDate()+1);
+          else if(t.recurring==='weekly') d.setDate(d.getDate()+7);
+          else d.setMonth(d.getMonth()+1);
+          t.dueDate=d.toISOString().split('T')[0];
+        }
+        saveST();renderMain();
+      },1600);
+    }
+  }
+  saveST();renderMain();
+}
+
+function deleteTask(id,e){
+  e.stopPropagation();
+  if(!confirm('Delete this quest?')) return;
+  ST.tasks=ST.tasks.filter(x=>x.id!==id);
+  saveST();renderMain();toast('Quest deleted','var(--red)');
+}
+
+// ══════════════════════════════════════════════════════
+//  SKILLS PAGE
+// ══════════════════════════════════════════════════════
+function renderSkillsPage(){
+  const mc=document.getElementById('main-content');
+  // compute total hours across all skills for stats
+  const totalHrs=ST.skills.reduce((a,s)=>a+totalSkillHrs(s),0);
+  const totalSessions=ST.skills.reduce((a,s)=>a+(s.sessions||[]).length,0);
+  mc.innerHTML=`
+    <div class="stats-row">
+      <div class="sc s1"><div class="sc-val" id="st-total">${ST.skills.length}</div><div class="sc-lbl">Skills Tracked</div></div>
+      <div class="sc s2"><div class="sc-val" id="st-done">${Math.round(totalHrs*10)/10}</div><div class="sc-lbl">Total Hours</div></div>
+      <div class="sc s3"><div class="sc-val" id="st-streak">${totalSessions}</div><div class="sc-lbl">Sessions Logged</div></div>
+      <div class="sc s4"><div class="sc-val" id="st-xp">${ST.xp}</div><div class="sc-lbl">Total XP</div></div>
+    </div>`;
+  const hd=document.createElement('div');hd.className='sec-hd';
+  hd.innerHTML=`<div class="sec-title">SKILLS & MASTERY</div><div class="sec-cnt">${ST.skills.length} skill${ST.skills.length!==1?'s':''}</div>`;
+  mc.appendChild(hd);
+  if(!ST.skills.length){
+    mc.innerHTML+=`<div class="empty"><span class="empty-ico">🎮</span><div class="empty-txt">No skills yet.<br>Click <b>+ NEW SKILL</b> to start tracking mastery.</div></div>`;
+    return;
+  }
+  const grid=document.createElement('div');grid.className='skills-grid';
+  ST.skills.forEach(sk=>grid.appendChild(makeSkillCard(sk)));
+  mc.appendChild(grid);
+}
+
+function makeSkillCard(sk){
+  const hrs=totalSkillHrs(sk);
+  const rank=getSkillRank(hrs);
+  const nxt=nextSkillRank(hrs);
+  const goal=sk.goal||1000;
+  const pct=Math.min(100,Math.round(hrs/goal*100));
+  // progress to next rank
+  const nxtPct=nxt?Math.min(100,Math.round((hrs-rank.minHrs)/(nxt.minHrs-rank.minHrs)*100)):100;
+  const card=document.createElement('div');
+  card.className='skill-card';
+  card.style.setProperty('--sk-color',sk.color||'#b44fff');
+  card.style.cssText+=`--sk-color:${sk.color||'#b44fff'}`;
+  // top bar color
+  card.querySelector?.('*');
+  const isOpen=sk._open;
+  card.innerHTML=`
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${sk.color||'#b44fff'};opacity:.9;border-radius:10px 10px 0 0"></div>
+    <div class="skill-top">
+      <div class="skill-left">
+        <div class="skill-ico" style="background:${sk.color||'#b44fff'}22;border:1px solid ${sk.color||'#b44fff'}44">
+          <span style="font-size:20px">${sk.emoji||'⚡'}</span>
+        </div>
+        <div>
+          <div class="skill-name">${esc(sk.name)}</div>
+          <span class="skill-rank rank-badge" style="background:${rank.color}18;color:${rank.color};border:1px solid ${rank.color}40;margin-top:3px;display:inline-flex">
+            ${rank.name}
+          </span>
+        </div>
+      </div>
+      <div class="skill-acts">
+        <button class="act-btn" onclick="openSkillModal('${sk.id}')" title="Edit">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5V9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="act-btn del" onclick="deleteSkill('${sk.id}')" title="Delete">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 3h8M5 3V2h2v1M9 3l-.6 7.5H3.6L3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="skill-hrs-row">
+      <span class="skill-hrs-big" style="color:${sk.color||'#b44fff'}">${Math.round(hrs*10)/10}</span>
+      <span class="skill-hrs-lbl">/ ${goal} hrs to master</span>
+    </div>
+    <div class="skill-bar-wrap">
+      <div class="skill-bar-top">
+        <span>${nxt?`→ ${nxt.name} in ${Math.max(0,Math.round((nxt.minHrs-hrs)*10)/10)}h`:'🏆 Mastered!'}</span>
+        <span>${pct}%</span>
+      </div>
+      <div class="skill-bar">
+        <div class="skill-fill" style="width:${pct}%;background:${sk.color||'#b44fff'}"></div>
+      </div>
+    </div>
+    ${nxt?`
+    <div style="margin-bottom:10px">
+      <div class="skill-bar-top" style="margin-bottom:4px">
+        <span style="font-size:10px;color:var(--muted2)">Rank progress</span>
+        <span style="font-size:10px;color:var(--muted2)">${nxtPct}%</span>
+      </div>
+      <div class="skill-bar" style="height:5px">
+        <div class="skill-fill" style="width:${nxtPct}%;background:${rank.color}"></div>
+      </div>
+    </div>`:''}
+    <div class="skill-bottom">
+      <span class="skill-sessions">${(sk.sessions||[]).length} session${(sk.sessions||[]).length!==1?'s':''} logged</span>
+      <button class="log-btn" onclick="toggleLogPanel('${sk.id}',event)">+ Log Session</button>
+    </div>
+    <div class="log-panel${sk._open?' open':''}" id="lp-${sk.id}">
+      <div class="log-row">
+        <input class="log-input" type="number" placeholder="Hours" min="0.1" step="0.1" id="li-hrs-${sk.id}"/>
+        <input class="log-note" type="text" placeholder="What did you practice?" id="li-note-${sk.id}"/>
+        <button class="log-submit" onclick="logSession('${sk.id}')">LOG</button>
+      </div>
+      ${(sk.sessions||[]).length?`
+      <div class="sessions-list">
+        ${[...(sk.sessions||[])].reverse().slice(0,8).map((s,ri)=>{
+          const realIdx=(sk.sessions||[]).length-1-ri;
+          return`<div class="sess-row">
+            <span class="sess-hrs">${Math.round(s.hrs*10)/10}h</span>
+            <span class="sess-note">${esc(s.note||'—')}</span>
+            <span class="sess-date">${fmtDT(s.ts)}</span>
+            <button class="sess-del" onclick="deleteSession('${sk.id}',${realIdx},event)" title="Delete">×</button>
+          </div>`;}).join('')}
+      </div>`:''}
+    </div>`;
+  return card;
+}
+
+function toggleLogPanel(id,e){
+  e.stopPropagation();
+  const sk=ST.skills.find(s=>s.id===id);if(!sk) return;
+  sk._open=!sk._open;
+  renderSkillsPage();
+  if(sk._open) setTimeout(()=>document.getElementById('li-hrs-'+id)?.focus(),50);
+}
+
+function logSession(id){
+  const sk=ST.skills.find(s=>s.id===id);if(!sk) return;
+  const hrsEl=document.getElementById('li-hrs-'+id);
+  const noteEl=document.getElementById('li-note-'+id);
+  const hrs=parseFloat(hrsEl?.value);
+  if(!hrs||hrs<=0){shake(hrsEl);return;}
+  const note=(noteEl?.value||'').trim();
+  if(!sk.sessions) sk.sessions=[];
+  sk.sessions.push({hrs,note,ts:Date.now()});
+  // XP for session: 10 XP per hour
+  const xpGained=Math.round(hrs*10);
+  addXP(xpGained);
+  // rank up check
+  const before=getSkillRank(totalSkillHrs(sk)-hrs).name;
+  const after=getSkillRank(totalSkillHrs(sk)).name;
+  if(after!==before) toast(`🏆 RANK UP: ${sk.name} is now ${after}!`,'var(--yellow)');
+  else toast(`✅ ${hrs}h logged for ${sk.name} (+${xpGained} XP)`,'var(--green)');
+  saveST();renderSkillsPage();
+}
+
+function deleteSession(skId,idx,e){
+  e.stopPropagation();
+  const sk=ST.skills.find(s=>s.id===skId);if(!sk) return;
+  sk.sessions.splice(idx,1);
+  saveST();renderSkillsPage();
+  toast('Session removed','var(--red)');
+}
+
+function deleteSkill(id){
+  if(!confirm('Delete this skill and all sessions?')) return;
+  ST.skills=ST.skills.filter(s=>s.id!==id);
+  saveST();renderSkillsPage();toast('Skill deleted','var(--red)');
+}
+
+// ══════════════════════════════════════════════════════
+//  TASK MODAL
+// ══════════════════════════════════════════════════════
+function openTaskModal(editId){
+  editTaskId=editId||null;
+  document.getElementById('task-mtitle').textContent=editId?'EDIT QUEST':'NEW QUEST';
+  const sel=document.getElementById('f-cat');
+  sel.innerHTML='<option value="">— No category —</option>';
+  ST.categories.forEach(c=>sel.innerHTML+=`<option value="${c.id}">${c.emoji||''} ${c.name}</option>`);
+  document.getElementById('f-name').value='';
+  document.getElementById('f-date').value='';
+  document.getElementById('f-notes').value='';
+  document.getElementById('f-xp').value='50';
+  document.getElementById('f-rec').value='';
+  document.querySelectorAll('.pr').forEach(r=>r.classList.toggle('sel',r.dataset.p==='high'));
+  document.getElementById('modal-subs').innerHTML='';
+  if(editId){
+    const t=ST.tasks.find(x=>x.id===editId);
+    if(t){
+      document.getElementById('f-name').value=t.name;
+      document.getElementById('f-date').value=t.dueDate||'';
+      document.getElementById('f-notes').value=t.notes||'';
+      document.getElementById('f-xp').value=t.xp||50;
+      document.getElementById('f-rec').value=t.recurring||'';
+      sel.value=t.catId||'';
+      document.querySelectorAll('.pr').forEach(r=>r.classList.toggle('sel',r.dataset.p===(t.priority||'high')));
+      (t.subtasks||[]).forEach(s=>addSubField(s.text,s.done));
+    }
+  }
+  document.getElementById('task-ov').classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(),120);
+}
+function closeTaskModal(){document.getElementById('task-ov').classList.remove('open');}
+function selPrio(el){document.querySelectorAll('.pr').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');}
+function addSubField(text,done){
+  const c=document.getElementById('modal-subs');
+  const r=document.createElement('div');r.className='stask-row';
+  r.innerHTML=`<input type="checkbox" ${done?'checked':''}/><input type="text" placeholder="Sub-quest…" value="${esc(text||'')}"/><button class="stask-del" onclick="this.parentElement.remove()">×</button>`;
+  c.appendChild(r);
+}
+function saveTask(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){shake(document.getElementById('f-name'));return;}
+  const prio=document.querySelector('.pr.sel')?.dataset.p||'med';
+  const subs=[...document.querySelectorAll('#modal-subs .stask-row')].map(r=>({
+    text:r.querySelector('input[type=text]').value.trim(),
+    done:r.querySelector('input[type=checkbox]').checked
+  })).filter(s=>s.text);
+  if(editTaskId){
+    const t=ST.tasks.find(x=>x.id===editTaskId);
+    if(t){Object.assign(t,{name,catId:document.getElementById('f-cat').value||null,
+      dueDate:document.getElementById('f-date').value||null,priority:prio,
+      notes:document.getElementById('f-notes').value.trim(),
+      xp:parseInt(document.getElementById('f-xp').value)||10,
+      recurring:document.getElementById('f-rec').value||null,subtasks:subs});}
+    toast('Quest updated!','var(--purple)');
+  } else {
+    ST.tasks.unshift({id:'t'+(ST._id++),name,
+      catId:document.getElementById('f-cat').value||null,
+      dueDate:document.getElementById('f-date').value||null,
+      priority:prio,done:false,
+      notes:document.getElementById('f-notes').value.trim(),
+      xp:parseInt(document.getElementById('f-xp').value)||10,
+      recurring:document.getElementById('f-rec').value||null,
+      subtasks:subs,createdAt:Date.now()});
+    toast('⚡ Quest added!','var(--cyan)');
+  }
+  saveST();closeTaskModal();renderMain();renderCategories();
+}
+
+// ══════════════════════════════════════════════════════
+//  CATEGORY MODAL
+// ══════════════════════════════════════════════════════
+function openCatModal(){
+  document.getElementById('cat-name').value='';
+  document.getElementById('cat-emoji').value='';
+  buildCpicker('cat-cpicker');
+  document.getElementById('cat-ov').classList.add('open');
+  setTimeout(()=>document.getElementById('cat-name').focus(),120);
+}
+function closeCatModal(){document.getElementById('cat-ov').classList.remove('open');}
+function saveCat(){
+  const name=document.getElementById('cat-name').value.trim();
+  if(!name){shake(document.getElementById('cat-name'));return;}
+  const color=document.querySelector('#cat-cpicker .csw.sel')?.dataset.c||'#7a7098';
+  const emoji=document.getElementById('cat-emoji').value.trim();
+  ST.categories.push({id:'c'+(ST._id++),name,color,emoji});
+  saveST();closeCatModal();renderCategories();toast('Category created!','var(--green)');
+}
+function deleteCat(id,e){
+  e.stopPropagation();
+  if(ST.tasks.some(t=>t.catId===id)){
+    if(!confirm('This category has tasks. Delete anyway?')) return;
+    ST.tasks.forEach(t=>{if(t.catId===id) t.catId=null;});
+  }
+  ST.categories=ST.categories.filter(c=>c.id!==id);
+  saveST();renderCategories();renderMain();toast('Category removed','var(--orange)');
+}
+
+// ══════════════════════════════════════════════════════
+//  SKILL MODAL
+// ══════════════════════════════════════════════════════
+function openSkillModal(editId){
+  editSkillId=editId||null;
+  document.getElementById('skill-mtitle').textContent=editId?'EDIT SKILL':'NEW SKILL';
+  document.getElementById('sk-name').value='';
+  document.getElementById('sk-emoji').value='';
+  document.getElementById('sk-goal').value='1000';
+  document.getElementById('sk-notes').value='';
+  buildCpicker('sk-cpicker');
+  if(editId){
+    const sk=ST.skills.find(s=>s.id===editId);
+    if(sk){
+      document.getElementById('sk-name').value=sk.name;
+      document.getElementById('sk-emoji').value=sk.emoji||'';
+      document.getElementById('sk-goal').value=sk.goal||1000;
+      document.getElementById('sk-notes').value=sk.notes||'';
+      // pre-select color
+      setTimeout(()=>{
+        const sw=document.querySelector(`#sk-cpicker .csw[data-c="${sk.color}"]`);
+        if(sw){document.querySelectorAll('#sk-cpicker .csw').forEach(x=>x.classList.remove('sel'));sw.classList.add('sel');}
+      },50);
+    }
+  }
+  document.getElementById('skill-ov').classList.add('open');
+  setTimeout(()=>document.getElementById('sk-name').focus(),120);
+}
+function closeSkillModal(){document.getElementById('skill-ov').classList.remove('open');}
+function saveSkill(){
+  const name=document.getElementById('sk-name').value.trim();
+  if(!name){shake(document.getElementById('sk-name'));return;}
+  const color=document.querySelector('#sk-cpicker .csw.sel')?.dataset.c||'#b44fff';
+  const emoji=document.getElementById('sk-emoji').value.trim()||'⚡';
+  const goal=parseInt(document.getElementById('sk-goal').value)||1000;
+  const notes=document.getElementById('sk-notes').value.trim();
+  if(editSkillId){
+    const sk=ST.skills.find(s=>s.id===editSkillId);
+    if(sk) Object.assign(sk,{name,color,emoji,goal,notes});
+    toast('Skill updated!','var(--purple)');
+  } else {
+    ST.skills.push({id:'sk'+(ST._id++),name,color,emoji,goal,notes,sessions:[],createdAt:Date.now()});
+    toast(`✨ ${name} skill created!`,'var(--cyan)');
+  }
+  saveST();closeSkillModal();renderSkillsPage();
+  document.getElementById('nb-skills').textContent=ST.skills.length;
+}
+
+// ══════════════════════════════════════════════════════
+//  CATEGORIES RENDER (sidebar)
+// ══════════════════════════════════════════════════════
+function renderCategories(){
+  const list=document.getElementById('cat-list');list.innerHTML='';
+  ST.categories.forEach(cat=>{
+    const d=document.createElement('div');
+    d.className='cat-item'+(curCat===cat.id?' active':'');
+    d.dataset.id=cat.id;
+    d.innerHTML=`<span class="cat-dot" style="background:${cat.color}"></span>${cat.emoji||''} ${esc(cat.name)}<span class="cat-cnt">0</span><button class="cat-del" onclick="deleteCat('${cat.id}',event)">×</button>`;
+    d.onclick=e=>{if(!e.target.classList.contains('cat-del')) setCatView(cat.id);};
+    list.appendChild(d);
+  });
+  updateCounts();
+}
+
+// ══════════════════════════════════════════════════════
+//  COLOR PICKER BUILDER
+// ══════════════════════════════════════════════════════
+function buildCpicker(containerId){
+  const el=document.getElementById(containerId);el.innerHTML='';
+  COLORS.forEach((c,i)=>{
+    const sw=document.createElement('div');
+    sw.className='csw'+(i===0?' sel':'');
+    sw.style.background=c;sw.dataset.c=c;
+    sw.onclick=()=>{el.querySelectorAll('.csw').forEach(x=>x.classList.remove('sel'));sw.classList.add('sel');};
+    el.appendChild(sw);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
+function toast(msg,dotColor){
+  const wrap=document.getElementById('toast-wrap');
+  const el=document.createElement('div');el.className='toast';
+  el.innerHTML=`<span class="t-dot" style="background:${dotColor||'var(--cyan)'}"></span>${msg}`;
+  wrap.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},2800);
+}
+
+// ══════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function shake(el){if(!el) return;el.style.animation='none';el.offsetHeight;el.style.animation='shake .3s ease';el.addEventListener('animationend',()=>el.style.animation='',{once:true});}
+
+// ══════════════════════════════════════════════════════
+//  KEYBOARD
+// ══════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeTaskModal();closeCatModal();closeSkillModal();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('search-inp').focus();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();onNewBtn();}
+});
+document.getElementById('task-ov').addEventListener('click',e=>{if(e.target===document.getElementById('task-ov')) closeTaskModal();});
+document.getElementById('cat-ov').addEventListener('click',e=>{if(e.target===document.getElementById('cat-ov')) closeCatModal();});
+document.getElementById('skill-ov').addEventListener('click',e=>{if(e.target===document.getElementById('skill-ov')) closeSkillModal();});
+document.getElementById('f-name').addEventListener('keydown',e=>{if(e.key==='Enter') saveTask();});
+document.getElementById('cat-name').addEventListener('keydown',e=>{if(e.key==='Enter') saveCat();});
+document.getElementById('sk-name').addEventListener('keydown',e=>{if(e.key==='Enter') saveSkill();});
+
+// ══════════════════════════════════════════════════════
+//  GOOGLE DRIVE BACKUP
+// ══════════════════════════════════════════════════════
+const CLIENT_ID='289884119388-2eulms3sb1ghq78q6hjhpnqi1erpsnn1.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/drive.file';
+const BACKUP_FILENAME='quest-manager-9000-backup.json';
+let gisInited=false, gapiInited=false, tokenClient=null, accessToken=null;
+
+function loadGoogleLibs(){
+  return new Promise((resolve)=>{
+    if(gisInited&&gapiInited){resolve();return;}
+    let gapiLoaded=false,gisLoaded=false;
+    const check=()=>{if(gapiLoaded&&gisLoaded)resolve();};
+    const gapiScript=document.createElement('script');
+    gapiScript.src='https://apis.google.com/js/api.js';
+    gapiScript.onload=()=>{
+      gapi.load('client',async()=>{
+        await gapi.client.init({});
+        await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+        gapiInited=true;gapiLoaded=true;check();
+      });
+    };
+    document.head.appendChild(gapiScript);
+    const gisScript=document.createElement('script');
+    gisScript.src='https://accounts.google.com/gsi/client';
+    gisScript.onload=()=>{
+      tokenClient=google.accounts.oauth2.initTokenClient({
+        client_id:CLIENT_ID,scope:SCOPES,
+        callback:''
+      });
+      gisInited=true;gisLoaded=true;check();
+    };
+    document.head.appendChild(gisScript);
+  });
+}
+
+function getToken(){
+  return new Promise((resolve,reject)=>{
+    tokenClient.callback=async(resp)=>{
+      if(resp.error){reject(resp);return;}
+      accessToken=resp.access_token;
+      gapi.client.setToken({access_token:accessToken});
+      resolve();
+    };
+    if(!accessToken){tokenClient.requestAccessToken({prompt:'consent'});}
+    else{tokenClient.requestAccessToken({prompt:''});}
+  });
+}
+
+async function findBackupFile(){
+  const res=await gapi.client.drive.files.list({
+    q:`name='${BACKUP_FILENAME}' and trashed=false`,
+    fields:'files(id,name,modifiedTime)',spaces:'drive'
+  });
+  return res.result.files&&res.result.files.length?res.result.files[0]:null;
+}
+
+async function driveBackup(){
+  document.getElementById('bk-ov').classList.add('open');
+  updateLastBackupLabel();
+}
+
+function updateLastBackupLabel(){
+  const last=localStorage.getItem('qm9k_last_backup');
+  const el=document.getElementById('bk-last');
+  if(last) el.textContent='גיבוי אחרון: '+new Date(parseInt(last)).toLocaleString('he-IL');
+  else el.textContent='טרם בוצע גיבוי';
+}
+
+async function doBackup(){
+  const btn=document.querySelector('[onclick="doBackup()"]');
+  const driveBtn=document.getElementById('drive-btn');
+  btn.textContent='...';btn.disabled=true;
+  driveBtn.classList.add('syncing');
+  document.getElementById('drive-btn-txt').textContent='Saving...';
+  try{
+    await loadGoogleLibs();
+    await getToken();
+    const data=JSON.stringify(ST,null,2);
+    const existing=await findBackupFile();
+    if(existing){
+      await gapi.client.request({
+        path:`https://www.googleapis.com/upload/drive/v3/files/${existing.id}`,
+        method:'PATCH',
+        params:{uploadType:'media'},
+        headers:{'Content-Type':'application/json'},
+        body:data
+      });
+    } else {
+      const meta=await gapi.client.drive.files.create({
+        resource:{name:BACKUP_FILENAME,mimeType:'application/json'},
+        fields:'id'
+      });
+      await gapi.client.request({
+        path:`https://www.googleapis.com/upload/drive/v3/files/${meta.result.id}`,
+        method:'PATCH',
+        params:{uploadType:'media'},
+        headers:{'Content-Type':'application/json'},
+        body:data
+      });
+    }
+    localStorage.setItem('qm9k_last_backup',Date.now().toString());
+    driveBtn.classList.remove('syncing');driveBtn.classList.add('success');
+    document.getElementById('drive-btn-txt').textContent='✓ Saved!';
+    setTimeout(()=>{driveBtn.classList.remove('success');document.getElementById('drive-btn-txt').textContent='Backup';},3000);
+    toast('☁️ Backup saved to Google Drive!','var(--green)');
+    updateLastBackupLabel();
+    document.getElementById('bk-ov').classList.remove('open');
+  } catch(err){
+    console.error(err);
+    driveBtn.classList.remove('syncing');driveBtn.classList.add('error');
+    document.getElementById('drive-btn-txt').textContent='Error';
+    setTimeout(()=>{driveBtn.classList.remove('error');document.getElementById('drive-btn-txt').textContent='Backup';},3000);
+    toast('❌ Backup failed: '+(err.message||err.error||'Unknown error'),'var(--red)');
+  } finally{
+    btn.textContent='Backup';btn.disabled=false;
+  }
+}
+
+async function doRestore(){
+  if(!confirm('זה ימחק את הנתונים הנוכחיים ויטען מהגיבוי. להמשיך?')) return;
+  const btn=document.querySelector('[onclick="doRestore()"]');
+  btn.textContent='...';btn.disabled=true;
+  try{
+    await loadGoogleLibs();
+    await getToken();
+    const file=await findBackupFile();
+    if(!file){toast('לא נמצא קובץ גיבוי ב-Drive','var(--orange)');return;}
+    const res=await gapi.client.drive.files.get({
+      fileId:file.id,alt:'media'
+    });
+    const restored=typeof res.result==='string'?JSON.parse(res.result):res.result;
+    ST=restored;
+    saveST();
+    renderCategories();renderMain();renderXPBar();
+    toast('📥 Restored from Google Drive!','var(--cyan)');
+    document.getElementById('bk-ov').classList.remove('open');
+  } catch(err){
+    console.error(err);
+    toast('❌ Restore failed: '+(err.message||err.error||'Unknown error'),'var(--red)');
+  } finally{
+    btn.textContent='Restore';btn.disabled=false;
+  }
+}
+
+document.getElementById('bk-ov').addEventListener('click',e=>{
+  if(e.target===document.getElementById('bk-ov')) document.getElementById('bk-ov').classList.remove('open');
+});
+renderCategories();
+renderMain();
+renderXPBar();
+</script>
+</body>
+</html>
