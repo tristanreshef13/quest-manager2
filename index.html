@@ -270,13 +270,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 /* ── MODALS ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;
   display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(3px)}
-.overlay.open{opacity:1;pointer-events:all}
+  opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(3px);
+  -webkit-overflow-scrolling:touch;}
+.overlay.open{opacity:1;pointer-events:all;}
 .modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;
-  width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  width:500px;max-width:95vw;max-height:88vh;overflow-y:auto;
   box-shadow:0 24px 80px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.04);
-  transform:scale(.96) translateY(8px);transition:transform .2s}
-.overlay.open .modal{transform:scale(1) translateY(0)}
+  transform:scale(.96) translateY(8px);transition:transform .2s;
+  -webkit-overflow-scrolling:touch;}
+.overlay.open .modal{transform:scale(1) translateY(0);}
 .modal.sm{width:380px}
 .mhd{padding:18px 20px 14px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between}
@@ -335,7 +337,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .btn-c:hover{border-color:var(--text);color:var(--text)}
 .btn-s{background:var(--cyan);border:none;border-radius:var(--r);color:#000;
   padding:8px 20px;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:7px;
-  box-shadow:0 0 12px rgba(0,245,212,.25);transition:all .15s}
+  box-shadow:0 0 12px rgba(0,245,212,.25);transition:all .15s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .btn-s:hover{background:#00ddc0;box-shadow:0 0 20px rgba(0,245,212,.45)}
 
 /* ── TOAST ── */
@@ -622,22 +625,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
     <button class="m-close" onclick="document.getElementById('bk-ov').classList.remove('open')">×</button>
   </div>
   <div class="bk-body" id="bk-body">
-    <div class="bk-icon">💾</div>
-    <div class="bk-title">BACKUP & RESTORE</div>
-    <div class="bk-text">שמור את כל המשימות, הסקילס והנתונים שלך<br/>כקובץ JSON — ואחסן אותו איפה שרוצה.</div>
+    <div class="bk-icon">☁️</div>
+    <div class="bk-title">GOOGLE DRIVE</div>
+    <div class="bk-text">הנתונים שלך נשמרים אוטומטית ב-Drive.<br/>גיבוי ראשון דורש התחברות לחשבון Google.</div>
     <div class="bk-row">
       <span class="bk-row-icon">📤</span>
       <div class="bk-row-text">
-        <div class="bk-row-title">הורד גיבוי</div>
-        <div class="bk-row-sub">מוריד קובץ JSON — גרור אותו ל-Drive</div>
+        <div class="bk-row-title">גבה עכשיו</div>
+        <div class="bk-row-sub">שומר ישירות ל-Google Drive שלך</div>
       </div>
-      <button class="bk-row-action" onclick="doBackup()">הורד</button>
+      <button class="bk-row-action" onclick="doBackup()">גבה עכשיו</button>
     </div>
     <div class="bk-row">
       <span class="bk-row-icon">📥</span>
       <div class="bk-row-text">
-        <div class="bk-row-title">שחזר מגיבוי</div>
-        <div class="bk-row-sub">בחר קובץ JSON שהורדת בעבר</div>
+        <div class="bk-row-title">שחזר מ-Drive</div>
+        <div class="bk-row-sub">טוען גיבוי קיים מה-Drive שלך</div>
       </div>
       <button class="bk-row-action" onclick="doRestore()">שחזר</button>
     </div>
@@ -1226,6 +1229,14 @@ function addSubField(text,done){
   r.innerHTML=`<input type="checkbox" ${done?'checked':''}/><input type="text" placeholder="Sub-quest…" value="${esc(text||'')}"/><button class="stask-del" onclick="this.parentElement.remove()">×</button>`;
   c.appendChild(r);
 }
+function closeTaskModal(){
+  const ov=document.getElementById('task-ov');
+  ov.classList.remove('open');
+  // force reflow for mobile
+  ov.style.display='none';
+  setTimeout(()=>{ov.style.display='';},10);
+}
+
 function saveTask(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){shake(document.getElementById('f-name'));return;}
@@ -1253,7 +1264,9 @@ function saveTask(){
       subtasks:subs,createdAt:Date.now()});
     toast('⚡ Quest added!','var(--cyan)');
   }
-  saveST();closeTaskModal();renderMain();renderCategories();
+  saveST();
+  closeTaskModal();
+  setTimeout(()=>{renderMain();renderCategories();},20);
 }
 
 // ══════════════════════════════════════════════════════
@@ -1397,9 +1410,105 @@ document.getElementById('cat-name').addEventListener('keydown',e=>{if(e.key==='E
 document.getElementById('sk-name').addEventListener('keydown',e=>{if(e.key==='Enter') saveSkill();});
 
 // ══════════════════════════════════════════════════════
-//  BACKUP — EXPORT / IMPORT (עובד מכל מקום)
+//  GOOGLE DRIVE BACKUP — OAuth אמיתי
 // ══════════════════════════════════════════════════════
+const CLIENT_ID='289884119388-2eulms3sb1ghq78q6hjhpnqi1erpsnn1.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/drive.file';
 const BACKUP_FILENAME='quest-manager-9000-backup.json';
+let gisInited=false,gapiInited=false,tokenClient=null,accessToken=null;
+let _autoBackupTimer=null;
+
+function saveST(){
+  localStorage.setItem('qm9k_v2',JSON.stringify(ST));
+  if(accessToken){
+    clearTimeout(_autoBackupTimer);
+    _autoBackupTimer=setTimeout(()=>silentBackup(),30000);
+    const el=document.getElementById('drive-btn-txt');
+    const btn=document.getElementById('drive-btn');
+    if(!btn.classList.contains('syncing')&&!btn.classList.contains('success')){
+      el.textContent='Auto-saving...';
+      btn.style.color='var(--yellow)';btn.style.borderColor='var(--yellow)';
+      clearTimeout(btn._t);
+      btn._t=setTimeout(()=>{el.textContent='Drive';btn.style.color='';btn.style.borderColor='';},2500);
+    }
+  }
+}
+
+function loadGoogleLibs(){
+  return new Promise((resolve)=>{
+    if(gisInited&&gapiInited){resolve();return;}
+    let gl=false,gi=false;
+    const check=()=>{if(gl&&gi)resolve();};
+    const gs=document.createElement('script');
+    gs.src='https://apis.google.com/js/api.js';
+    gs.onload=()=>{gapi.load('client',async()=>{
+      await gapi.client.init({});
+      await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+      gapiInited=true;gl=true;check();
+    });};
+    document.head.appendChild(gs);
+    const gis=document.createElement('script');
+    gis.src='https://accounts.google.com/gsi/client';
+    gis.onload=()=>{
+      tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:''});
+      gisInited=true;gi=true;check();
+    };
+    document.head.appendChild(gis);
+  });
+}
+
+function getToken(silent){
+  return new Promise((resolve,reject)=>{
+    tokenClient.callback=async(resp)=>{
+      if(resp.error){reject(resp);return;}
+      accessToken=resp.access_token;
+      gapi.client.setToken({access_token:accessToken});
+      resolve();
+    };
+    tokenClient.requestAccessToken({prompt:silent?'':'consent'});
+  });
+}
+
+async function findBackupFile(){
+  const res=await gapi.client.drive.files.list({
+    q:`name='${BACKUP_FILENAME}' and trashed=false`,
+    fields:'files(id,name,modifiedTime)',spaces:'drive'
+  });
+  return res.result.files&&res.result.files.length?res.result.files[0]:null;
+}
+
+async function uploadToDrive(data){
+  const existing=await findBackupFile();
+  if(existing){
+    await gapi.client.request({
+      path:`https://www.googleapis.com/upload/drive/v3/files/${existing.id}`,
+      method:'PATCH',params:{uploadType:'media'},
+      headers:{'Content-Type':'application/json'},body:data
+    });
+  } else {
+    const meta=await gapi.client.drive.files.create({
+      resource:{name:BACKUP_FILENAME,mimeType:'application/json'},fields:'id'
+    });
+    await gapi.client.request({
+      path:`https://www.googleapis.com/upload/drive/v3/files/${meta.result.id}`,
+      method:'PATCH',params:{uploadType:'media'},
+      headers:{'Content-Type':'application/json'},body:data
+    });
+  }
+  localStorage.setItem('qm9k_last_backup',Date.now().toString());
+  updateLastBackupLabel();
+}
+
+async function silentBackup(){
+  if(!accessToken) return;
+  try{
+    await uploadToDrive(JSON.stringify(ST,null,2));
+    const btn=document.getElementById('drive-btn');
+    const el=document.getElementById('drive-btn-txt');
+    btn.classList.add('success');el.textContent='☁️ Saved!';
+    setTimeout(()=>{btn.classList.remove('success');el.textContent='Drive';},3000);
+  } catch(e){console.warn('Auto-backup failed',e);}
+}
 
 function driveBackup(){
   document.getElementById('bk-ov').classList.add('open');
@@ -1421,65 +1530,73 @@ function updateLastBackupLabel(){
   }
 }
 
-function doBackup(){
-  const data=JSON.stringify(ST,null,2);
-  const blob=new Blob([data],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=BACKUP_FILENAME;
-  a.click();
-  URL.revokeObjectURL(url);
-  localStorage.setItem('qm9k_last_backup',Date.now().toString());
-  updateLastBackupLabel();
-  const btn=document.getElementById('drive-btn');
-  const el=document.getElementById('drive-btn-txt');
-  btn.classList.add('success');el.textContent='✓ Downloaded!';
-  setTimeout(()=>{btn.classList.remove('success');el.textContent='Backup';},3000);
-  toast('💾 קובץ גיבוי הורד — גרור אותו ל-Drive!','var(--green)');
-  document.getElementById('bk-ov').classList.remove('open');
+async function doBackup(){
+  const btn=document.querySelector('[onclick="doBackup()"]');
+  const driveBtn=document.getElementById('drive-btn');
+  btn.textContent='...';btn.disabled=true;
+  driveBtn.classList.add('syncing');
+  document.getElementById('drive-btn-txt').textContent='Saving...';
+  try{
+    await loadGoogleLibs();
+    if(!accessToken) await getToken(false);
+    await uploadToDrive(JSON.stringify(ST,null,2));
+    driveBtn.classList.remove('syncing');driveBtn.classList.add('success');
+    document.getElementById('drive-btn-txt').textContent='☁️ Saved!';
+    setTimeout(()=>{driveBtn.classList.remove('success');document.getElementById('drive-btn-txt').textContent='Drive';},3000);
+    toast('☁️ נשמר ב-Google Drive!','var(--green)');
+    document.getElementById('bk-ov').classList.remove('open');
+  } catch(err){
+    console.error(err);
+    driveBtn.classList.remove('syncing');driveBtn.classList.add('error');
+    document.getElementById('drive-btn-txt').textContent='Error';
+    setTimeout(()=>{driveBtn.classList.remove('error');document.getElementById('drive-btn-txt').textContent='Drive';},3000);
+    toast('❌ שגיאה: '+(err.message||err.error||'בדקי את החיבור'),'var(--red)');
+  } finally{btn.textContent='גבה עכשיו';btn.disabled=false;}
 }
 
-function doRestore(){
-  const input=document.createElement('input');
-  input.type='file';input.accept='.json';
-  input.onchange=async(e)=>{
-    const file=e.target.files[0];
-    if(!file) return;
-    try{
-      const text=await file.text();
-      const restored=JSON.parse(text);
-      if(!restored.tasks&&!restored.categories){
-        toast('❌ קובץ לא תקין','var(--red)');return;
-      }
-      if(!confirm('זה ימחק את הנתונים הנוכחיים ויטען מהגיבוי. להמשיך?')) return;
-      ST=restored;
-      saveST();
-      renderCategories();renderMain();renderXPBar();
-      toast('📥 נתונים שוחזרו בהצלחה!','var(--cyan)');
-      document.getElementById('bk-ov').classList.remove('open');
-    } catch(err){
-      toast('❌ שגיאה בטעינת הקובץ','var(--red)');
-    }
-  };
-  input.click();
+async function doRestore(){
+  if(!confirm('זה ימחק את הנתונים הנוכחיים ויטען מהגיבוי. להמשיך?')) return;
+  const btn=document.querySelector('[onclick="doRestore()"]');
+  btn.textContent='...';btn.disabled=true;
+  try{
+    await loadGoogleLibs();
+    if(!accessToken) await getToken(false);
+    const file=await findBackupFile();
+    if(!file){toast('לא נמצא קובץ גיבוי ב-Drive','var(--orange)');return;}
+    const res=await gapi.client.drive.files.get({fileId:file.id,alt:'media'});
+    const restored=typeof res.result==='string'?JSON.parse(res.result):res.result;
+    ST=restored;
+    localStorage.setItem('qm9k_v2',JSON.stringify(ST));
+    renderCategories();renderMain();renderXPBar();
+    toast('📥 שוחזר מ-Google Drive!','var(--cyan)');
+    document.getElementById('bk-ov').classList.remove('open');
+  } catch(err){
+    console.error(err);
+    toast('❌ שגיאה בשחזור','var(--red)');
+  } finally{btn.textContent='שחזר';btn.disabled=false;}
 }
 
 document.getElementById('bk-ov').addEventListener('click',e=>{
   if(e.target===document.getElementById('bk-ov')) document.getElementById('bk-ov').classList.remove('open');
 });
 
-// Auto-backup every 5 minutes if there were changes
-let _hasChanges=false;
-const _origSaveST=saveST;
-setInterval(()=>{
-  if(_hasChanges){
-    _hasChanges=false;
-    // silently note last local save time
-    const topbar=document.getElementById('last-backup-topbar');
-    if(topbar) topbar.textContent='💾 שמור מקומית';
-  }
-},300000);
+// Auto-connect on load (silent — no popup)
+window.addEventListener('load',()=>{
+  loadGoogleLibs().then(()=>{
+    tokenClient.callback=async(resp)=>{
+      if(resp.error) return;
+      accessToken=resp.access_token;
+      gapi.client.setToken({access_token:accessToken});
+      const el=document.getElementById('drive-btn-txt');
+      const btn=document.getElementById('drive-btn');
+      btn.style.color='var(--green)';btn.style.borderColor='var(--green)';
+      el.textContent='☁️ Connected';
+      setTimeout(()=>{btn.style.color='';btn.style.borderColor='';el.textContent='Drive';},3000);
+      updateLastBackupLabel();
+    };
+    tokenClient.requestAccessToken({prompt:''});
+  }).catch(()=>{});
+});
 
 // ══════════════════════════════════════════════════════
 //  MOBILE NAV
