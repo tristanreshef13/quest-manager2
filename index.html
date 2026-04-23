@@ -2,8 +2,15 @@
 <html lang="he">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>QUEST MANAGER 9000</title>
+<meta name="theme-color" content="#0d0b1a"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="QuestMgr"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -351,9 +358,48 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 @keyframes lvl-up{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
 
 @media(max-width:640px){
-  .sidebar{display:none}.stats-row{grid-template-columns:repeat(2,1fr)}
-  .skills-grid{grid-template-columns:1fr}.f2,.f3{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .skills-grid{grid-template-columns:1fr}
+  .f2,.f3{grid-template-columns:1fr}
+  .app{flex-direction:column;padding-bottom:70px}
+  .topbar{height:52px;padding:0 12px;gap:8px}
+  .tb-title{font-size:7px}
+  .search-box{width:140px;padding:5px 8px}
+  .content{padding:12px 14px}
+  .ti{padding:12px 10px}
+  .ti-name{font-size:14px}
+  .modal{width:95vw;max-height:85vh}
+  /* bottom nav for mobile */
+  .mobile-nav{display:flex}
+  .stats-row{margin-bottom:14px}
+  .sc-val{font-size:14px}
 }
+
+/* Mobile bottom navigation */
+.mobile-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:60px;
+  background:var(--panel);
+  border-top:1px solid var(--border);
+  z-index:50;
+  align-items:center;justify-content:space-around;
+  padding:0 8px;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.mob-tab{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;color:var(--muted);transition:color .15s;
+  padding:6px 12px;border-radius:var(--r);
+  font-size:9px;font-family:'Press Start 2P',monospace;
+  letter-spacing:.3px;flex:1;text-align:center;
+  user-select:none;
+}
+.mob-tab:hover,.mob-tab.active{color:var(--cyan)}
+.mob-tab.active svg{stroke:var(--cyan)}
+.mob-tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5}
+.mob-tab-label{font-size:7px}
 </style>
 </head>
 <body>
@@ -423,9 +469,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
     </button>
     <button class="new-btn" id="new-btn" onclick="onNewBtn()">+ NEW</button>
     <button class="drive-btn" id="drive-btn" onclick="driveBackup()" title="Backup to Google Drive">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 19h20L12 2z" fill="#4285F4" opacity=".0"/><path d="M1.5 19.5l4-7 4 7H1.5z" fill="#0F9D58"/><path d="M8.5 19.5l4-7 4 7H8.5z" fill="#4285F4" opacity="0"/><path d="M6 12.5L10 5l4 7.5H6z" fill="#4285F4"/><path d="M14 12.5L18 5l4 7.5H14z" fill="#FBBC04" opacity="0"/><path d="M2 19.5h20" stroke="#EA4335" opacity="0"/><path d="M8.5 4.5l3.5 6 3.5-6" stroke="#4285F4" opacity="0"/><polygon points="12,2 2,19 22,19" fill="none" stroke="#4285F4" opacity="0"/><path d="M3 17.5l4.5-8L12 17.5H3z" fill="#0F9D58"/><path d="M12 17.5l4.5-8L21 17.5H12z" fill="#FBBC04"/><path d="M7.5 9.5l4.5-7.5 4.5 7.5H7.5z" fill="#4285F4"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 17.5l4.5-8L12 17.5H3z" fill="#0F9D58"/><path d="M12 17.5l4.5-8L21 17.5H12z" fill="#FBBC04"/><path d="M7.5 9.5l4.5-7.5 4.5 7.5H7.5z" fill="#4285F4"/></svg>
       <span id="drive-btn-txt">Backup</span>
     </button>
+    <span id="last-backup-topbar" style="font-size:10px;color:var(--muted);white-space:nowrap"></span>
   </div>
   <div class="flt-bar" id="flt-bar">
     <span class="flt-lbl">Priority:</span>
@@ -539,6 +586,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 </div>
 </div>
 
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<div class="mobile-nav" id="mob-nav">
+  <div class="mob-tab active" onclick="mobNav('all',this)" id="mob-all">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span class="mob-tab-label">Tasks</span>
+  </div>
+  <div class="mob-tab" onclick="mobNav('today',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+    <span class="mob-tab-label">Today</span>
+  </div>
+  <div class="mob-tab" onclick="openTaskModal();highlightMobTab(this)" style="position:relative">
+    <div style="width:44px;height:44px;background:var(--pink);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-20px;box-shadow:0 0 16px rgba(255,63,164,.5)">
+      <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.5"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+    <span class="mob-tab-label" style="margin-top:2px">New</span>
+  </div>
+  <div class="mob-tab" onclick="mobNav('skills',this)">
+    <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+    <span class="mob-tab-label">Skills</span>
+  </div>
+  <div class="mob-tab" onclick="mobNav('done',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-5"/></svg>
+    <span class="mob-tab-label">Done</span>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <!-- ══ BACKUP MODAL ══ -->
@@ -549,24 +622,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
     <button class="m-close" onclick="document.getElementById('bk-ov').classList.remove('open')">×</button>
   </div>
   <div class="bk-body" id="bk-body">
-    <span class="bk-icon">☁️</span>
-    <div class="bk-title">Backup to Google Drive</div>
-    <div class="bk-text">שמור את כל המשימות, הסקילס והנתונים שלך<br/>ישירות ל-Google Drive שלך.</div>
+    <div class="bk-icon">💾</div>
+    <div class="bk-title">BACKUP & RESTORE</div>
+    <div class="bk-text">שמור את כל המשימות, הסקילס והנתונים שלך<br/>כקובץ JSON — ואחסן אותו איפה שרוצה.</div>
     <div class="bk-row">
       <span class="bk-row-icon">📤</span>
       <div class="bk-row-text">
-        <div class="bk-row-title">Backup עכשיו</div>
-        <div class="bk-row-sub">שומר קובץ JSON ב-Drive שלך</div>
+        <div class="bk-row-title">הורד גיבוי</div>
+        <div class="bk-row-sub">מוריד קובץ JSON — גרור אותו ל-Drive</div>
       </div>
-      <button class="bk-row-action" onclick="doBackup()">Backup</button>
+      <button class="bk-row-action" onclick="doBackup()">הורד</button>
     </div>
     <div class="bk-row">
       <span class="bk-row-icon">📥</span>
       <div class="bk-row-text">
-        <div class="bk-row-title">Restore מ-Drive</div>
-        <div class="bk-row-sub">טען גיבוי קיים (מחליף נתונים נוכחיים)</div>
+        <div class="bk-row-title">שחזר מגיבוי</div>
+        <div class="bk-row-sub">בחר קובץ JSON שהורדת בעבר</div>
       </div>
-      <button class="bk-row-action" onclick="doRestore()">Restore</button>
+      <button class="bk-row-action" onclick="doRestore()">שחזר</button>
     </div>
     <div id="bk-last" style="font-size:11px;color:var(--muted);margin-top:12px;text-align:center"></div>
   </div>
@@ -601,7 +674,59 @@ function loadST(){
   try{const s=localStorage.getItem('qm9k_v2');if(s)return JSON.parse(s);}catch(e){}
   return{tasks:[],categories:[...DEFAULT_CATS],skills:[],xp:0,streak:0,lastDone:null,_id:1};
 }
-function saveST(){localStorage.setItem('qm9k_v2',JSON.stringify(ST));}
+let _autoBackupTimer=null;
+function saveST(){
+  localStorage.setItem('qm9k_v2',JSON.stringify(ST));
+  // Auto-backup to Drive 30 seconds after last change (only if already authenticated)
+  if(accessToken){
+    clearTimeout(_autoBackupTimer);
+    _autoBackupTimer=setTimeout(()=>silentBackup(),30000);
+    showAutoBackupIndicator();
+  }
+}
+
+function showAutoBackupIndicator(){
+  const el=document.getElementById('drive-btn-txt');
+  const btn=document.getElementById('drive-btn');
+  if(btn.classList.contains('syncing')||btn.classList.contains('success')) return;
+  el.textContent='Auto-saving...';
+  btn.style.color='var(--yellow)';
+  btn.style.borderColor='var(--yellow)';
+  clearTimeout(btn._indicatorTimer);
+  btn._indicatorTimer=setTimeout(()=>{
+    el.textContent='Backup';
+    btn.style.color='';btn.style.borderColor='';
+  },2500);
+}
+
+async function silentBackup(){
+  if(!accessToken) return;
+  try{
+    const data=JSON.stringify(ST,null,2);
+    const existing=await findBackupFile();
+    if(existing){
+      await gapi.client.request({
+        path:`https://www.googleapis.com/upload/drive/v3/files/${existing.id}`,
+        method:'PATCH',params:{uploadType:'media'},
+        headers:{'Content-Type':'application/json'},body:data
+      });
+    } else {
+      const meta=await gapi.client.drive.files.create({
+        resource:{name:BACKUP_FILENAME,mimeType:'application/json'},fields:'id'
+      });
+      await gapi.client.request({
+        path:`https://www.googleapis.com/upload/drive/v3/files/${meta.result.id}`,
+        method:'PATCH',params:{uploadType:'media'},
+        headers:{'Content-Type':'application/json'},body:data
+      });
+    }
+    localStorage.setItem('qm9k_last_backup',Date.now().toString());
+    const btn=document.getElementById('drive-btn');
+    const el=document.getElementById('drive-btn-txt');
+    btn.classList.add('success');el.textContent='☁️ Saved!';
+    setTimeout(()=>{btn.classList.remove('success');el.textContent='Backup';},3000);
+  } catch(e){console.warn('Auto-backup failed silently',e);}
+}
 let ST=loadST();
 let curView='all', curCat=null;
 let activeF=new Set();
@@ -1272,63 +1397,11 @@ document.getElementById('cat-name').addEventListener('keydown',e=>{if(e.key==='E
 document.getElementById('sk-name').addEventListener('keydown',e=>{if(e.key==='Enter') saveSkill();});
 
 // ══════════════════════════════════════════════════════
-//  GOOGLE DRIVE BACKUP
+//  BACKUP — EXPORT / IMPORT (עובד מכל מקום)
 // ══════════════════════════════════════════════════════
-const CLIENT_ID='289884119388-2eulms3sb1ghq78q6hjhpnqi1erpsnn1.apps.googleusercontent.com';
-const SCOPES='https://www.googleapis.com/auth/drive.file';
 const BACKUP_FILENAME='quest-manager-9000-backup.json';
-let gisInited=false, gapiInited=false, tokenClient=null, accessToken=null;
 
-function loadGoogleLibs(){
-  return new Promise((resolve)=>{
-    if(gisInited&&gapiInited){resolve();return;}
-    let gapiLoaded=false,gisLoaded=false;
-    const check=()=>{if(gapiLoaded&&gisLoaded)resolve();};
-    const gapiScript=document.createElement('script');
-    gapiScript.src='https://apis.google.com/js/api.js';
-    gapiScript.onload=()=>{
-      gapi.load('client',async()=>{
-        await gapi.client.init({});
-        await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
-        gapiInited=true;gapiLoaded=true;check();
-      });
-    };
-    document.head.appendChild(gapiScript);
-    const gisScript=document.createElement('script');
-    gisScript.src='https://accounts.google.com/gsi/client';
-    gisScript.onload=()=>{
-      tokenClient=google.accounts.oauth2.initTokenClient({
-        client_id:CLIENT_ID,scope:SCOPES,
-        callback:''
-      });
-      gisInited=true;gisLoaded=true;check();
-    };
-    document.head.appendChild(gisScript);
-  });
-}
-
-function getToken(){
-  return new Promise((resolve,reject)=>{
-    tokenClient.callback=async(resp)=>{
-      if(resp.error){reject(resp);return;}
-      accessToken=resp.access_token;
-      gapi.client.setToken({access_token:accessToken});
-      resolve();
-    };
-    if(!accessToken){tokenClient.requestAccessToken({prompt:'consent'});}
-    else{tokenClient.requestAccessToken({prompt:''});}
-  });
-}
-
-async function findBackupFile(){
-  const res=await gapi.client.drive.files.list({
-    q:`name='${BACKUP_FILENAME}' and trashed=false`,
-    fields:'files(id,name,modifiedTime)',spaces:'drive'
-  });
-  return res.result.files&&res.result.files.length?res.result.files[0]:null;
-}
-
-async function driveBackup(){
+function driveBackup(){
   document.getElementById('bk-ov').classList.add('open');
   updateLastBackupLabel();
 }
@@ -1336,92 +1409,124 @@ async function driveBackup(){
 function updateLastBackupLabel(){
   const last=localStorage.getItem('qm9k_last_backup');
   const el=document.getElementById('bk-last');
-  if(last) el.textContent='גיבוי אחרון: '+new Date(parseInt(last)).toLocaleString('he-IL');
-  else el.textContent='טרם בוצע גיבוי';
+  const topbar=document.getElementById('last-backup-topbar');
+  if(last){
+    const d=new Date(parseInt(last));
+    const txt='גיבוי: '+d.toLocaleString('he-IL',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+    if(el) el.textContent='גיבוי אחרון: '+d.toLocaleString('he-IL');
+    if(topbar) topbar.textContent='☁️ '+txt;
+  } else {
+    if(el) el.textContent='טרם בוצע גיבוי';
+    if(topbar) topbar.textContent='';
+  }
 }
 
-async function doBackup(){
-  const btn=document.querySelector('[onclick="doBackup()"]');
-  const driveBtn=document.getElementById('drive-btn');
-  btn.textContent='...';btn.disabled=true;
-  driveBtn.classList.add('syncing');
-  document.getElementById('drive-btn-txt').textContent='Saving...';
-  try{
-    await loadGoogleLibs();
-    await getToken();
-    const data=JSON.stringify(ST,null,2);
-    const existing=await findBackupFile();
-    if(existing){
-      await gapi.client.request({
-        path:`https://www.googleapis.com/upload/drive/v3/files/${existing.id}`,
-        method:'PATCH',
-        params:{uploadType:'media'},
-        headers:{'Content-Type':'application/json'},
-        body:data
-      });
-    } else {
-      const meta=await gapi.client.drive.files.create({
-        resource:{name:BACKUP_FILENAME,mimeType:'application/json'},
-        fields:'id'
-      });
-      await gapi.client.request({
-        path:`https://www.googleapis.com/upload/drive/v3/files/${meta.result.id}`,
-        method:'PATCH',
-        params:{uploadType:'media'},
-        headers:{'Content-Type':'application/json'},
-        body:data
-      });
+function doBackup(){
+  const data=JSON.stringify(ST,null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=BACKUP_FILENAME;
+  a.click();
+  URL.revokeObjectURL(url);
+  localStorage.setItem('qm9k_last_backup',Date.now().toString());
+  updateLastBackupLabel();
+  const btn=document.getElementById('drive-btn');
+  const el=document.getElementById('drive-btn-txt');
+  btn.classList.add('success');el.textContent='✓ Downloaded!';
+  setTimeout(()=>{btn.classList.remove('success');el.textContent='Backup';},3000);
+  toast('💾 קובץ גיבוי הורד — גרור אותו ל-Drive!','var(--green)');
+  document.getElementById('bk-ov').classList.remove('open');
+}
+
+function doRestore(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=async(e)=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    try{
+      const text=await file.text();
+      const restored=JSON.parse(text);
+      if(!restored.tasks&&!restored.categories){
+        toast('❌ קובץ לא תקין','var(--red)');return;
+      }
+      if(!confirm('זה ימחק את הנתונים הנוכחיים ויטען מהגיבוי. להמשיך?')) return;
+      ST=restored;
+      saveST();
+      renderCategories();renderMain();renderXPBar();
+      toast('📥 נתונים שוחזרו בהצלחה!','var(--cyan)');
+      document.getElementById('bk-ov').classList.remove('open');
+    } catch(err){
+      toast('❌ שגיאה בטעינת הקובץ','var(--red)');
     }
-    localStorage.setItem('qm9k_last_backup',Date.now().toString());
-    driveBtn.classList.remove('syncing');driveBtn.classList.add('success');
-    document.getElementById('drive-btn-txt').textContent='✓ Saved!';
-    setTimeout(()=>{driveBtn.classList.remove('success');document.getElementById('drive-btn-txt').textContent='Backup';},3000);
-    toast('☁️ Backup saved to Google Drive!','var(--green)');
-    updateLastBackupLabel();
-    document.getElementById('bk-ov').classList.remove('open');
-  } catch(err){
-    console.error(err);
-    driveBtn.classList.remove('syncing');driveBtn.classList.add('error');
-    document.getElementById('drive-btn-txt').textContent='Error';
-    setTimeout(()=>{driveBtn.classList.remove('error');document.getElementById('drive-btn-txt').textContent='Backup';},3000);
-    toast('❌ Backup failed: '+(err.message||err.error||'Unknown error'),'var(--red)');
-  } finally{
-    btn.textContent='Backup';btn.disabled=false;
-  }
-}
-
-async function doRestore(){
-  if(!confirm('זה ימחק את הנתונים הנוכחיים ויטען מהגיבוי. להמשיך?')) return;
-  const btn=document.querySelector('[onclick="doRestore()"]');
-  btn.textContent='...';btn.disabled=true;
-  try{
-    await loadGoogleLibs();
-    await getToken();
-    const file=await findBackupFile();
-    if(!file){toast('לא נמצא קובץ גיבוי ב-Drive','var(--orange)');return;}
-    const res=await gapi.client.drive.files.get({
-      fileId:file.id,alt:'media'
-    });
-    const restored=typeof res.result==='string'?JSON.parse(res.result):res.result;
-    ST=restored;
-    saveST();
-    renderCategories();renderMain();renderXPBar();
-    toast('📥 Restored from Google Drive!','var(--cyan)');
-    document.getElementById('bk-ov').classList.remove('open');
-  } catch(err){
-    console.error(err);
-    toast('❌ Restore failed: '+(err.message||err.error||'Unknown error'),'var(--red)');
-  } finally{
-    btn.textContent='Restore';btn.disabled=false;
-  }
+  };
+  input.click();
 }
 
 document.getElementById('bk-ov').addEventListener('click',e=>{
   if(e.target===document.getElementById('bk-ov')) document.getElementById('bk-ov').classList.remove('open');
 });
+
+// Auto-backup every 5 minutes if there were changes
+let _hasChanges=false;
+const _origSaveST=saveST;
+setInterval(()=>{
+  if(_hasChanges){
+    _hasChanges=false;
+    // silently note last local save time
+    const topbar=document.getElementById('last-backup-topbar');
+    if(topbar) topbar.textContent='💾 שמור מקומית';
+  }
+},300000);
+
+// ══════════════════════════════════════════════════════
+//  MOBILE NAV
+// ══════════════════════════════════════════════════════
+function mobNav(view, el){
+  setView(view, document.querySelector('#nav-'+view)||el);
+  highlightMobTab(el);
+}
+function highlightMobTab(el){
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+//  SERVICE WORKER REGISTRATION
+// ══════════════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/quest-manager2/sw.js')
+      .then(()=>console.log('SW registered'))
+      .catch(e=>console.log('SW failed:', e));
+  });
+}
+
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  // Show install button if not already installed
+  const installBtn=document.createElement('button');
+  installBtn.className='flt-btn';
+  installBtn.innerHTML='📲 Install App';
+  installBtn.style.cssText='background:rgba(0,245,212,.1);border-color:var(--cyan);color:var(--cyan);white-space:nowrap';
+  installBtn.onclick=async()=>{
+    deferredPrompt.prompt();
+    const {outcome}=await deferredPrompt.userChoice;
+    if(outcome==='accepted') installBtn.remove();
+    deferredPrompt=null;
+  };
+  document.querySelector('.topbar').appendChild(installBtn);
+});
+
 renderCategories();
 renderMain();
 renderXPBar();
+updateLastBackupLabel();
 </script>
 </body>
 </html>

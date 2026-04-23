@@ -1,0 +1,27 @@
+{
+  "name": "Quest Manager 9000",
+  "short_name": "QuestMgr",
+  "description": "Your personal gaming quest manager",
+  "start_url": "/quest-manager2/",
+  "scope": "/quest-manager2/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0b1a",
+  "theme_color": "#0d0b1a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "he"
+}
